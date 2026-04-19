@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using DG.Tweening;
 using JetBrains.Annotations;
 using TMPro;
@@ -16,35 +17,25 @@ public class FireworkState
 
 public class Main : MonoBehaviour
 {
-
+    private static WaitForSeconds _waitForSeconds1 = new WaitForSeconds(1f);
     public int PixelsPerUnit = 16;
-    public int PixelsPerMeter = 32;
+    public int PixelsPerMeter = 64;
     public float MetersPerUnit;
 
-    public float MinLifetimeSeconds = 0.3f;
-    public float UpperLifetimeVariationSeconds = 0.2f;
+
     public float LifeTimeTimer;
 
-    public float ChargeInterval = 2f;
+
     public float ChargeTimer;
-
-    public float RechargeInterval = 1f;
-
-    // Am I going to introduce acceleration too?...
-
-    public float FireworkMinSpeed = 2f;
-    public float FireworkTopSpeed = 4f;
-    public float FireworkSpeed = 0.5f;
 
     public int CoinsPerMeter = 1;
 
-    public int Coins = 0;
+    public float Coins = 0;
 
 
-    public GameObject FireworkPfb;
-    public GameObject FireworkStandPfb;
-    public Transform FireworkLaunchAnchor;
-    public Transform FireworkStandAnchor;
+
+    public FireworkLauncher LauncherPfb;
+    public Transform LauncherAnchor;
 
     
     public float TravelledMeters;
@@ -58,6 +49,11 @@ public class Main : MonoBehaviour
 
     public GameObject NotchPfb;
 
+    public List<FireworkLauncher> Launchers;
+    void Awake()
+    {
+        G.main = this;
+    }
     void Start()
     {
         MetersPerUnit = (float)PixelsPerUnit / PixelsPerMeter;
@@ -68,62 +64,45 @@ public class Main : MonoBehaviour
             new Vector3(RulerStartAnchor.position.x, RulerStartAnchor.position.y + RulerLength, RulerStartAnchor.position.z)
         });
 
+        for(int i = 0; i < 20; i++)
+        {
+            var position = i / MetersPerUnit * Vector3.up +  LauncherPfb.FireworkLaunchAnchor.position;
+            Instantiate(NotchPfb, position, Quaternion.identity);
+        }
+
         Coins = 0;
-        CoinsT.text = $"Coins: {Coins}";
-        StartCoroutine(LaunchFirework());
+        CoinsT.text = $"$ {Coins}";
+        StartCoroutine(CreateLauncher());
     }
     void Update()
     {
+    }
+    public void EvaluateCoinsPerDistance(float overallDistanceMeters)
+    {
+
+        float coinsGained = overallDistanceMeters * CoinsPerMeter;
+
+        Debug.Log($"Distance travelled: {overallDistanceMeters}m");
+        Debug.Log($"Gained: {coinsGained} coins");
+
+        Coins += (float) Math.Round((double)coinsGained, 1);
+        CoinsT.text = $"$ {Coins}";
+    }
+    public IEnumerator CreateLauncher()
+    {
+        yield return new WaitForSeconds(2f);
+
+        for (int i = 0; i < 4; i++)
+        {
+            var launcher = Instantiate(LauncherPfb, LauncherAnchor.position + Vector3.left * (i * 20 / PixelsPerUnit), Quaternion.identity);
+            launcher.Init();
+            Launchers.Add(launcher);
+            yield return _waitForSeconds1;
+        }
     }
 
     // should remake all of this into an update function
     // the stand should also be refreshed while the firework launches i think
     // tweens don't work like that...
-    public IEnumerator LaunchFirework()
-    {
-        CurrentTravelledDistanceMetersT.text = "Travelled meters: 0";
 
-        var firework = Instantiate(FireworkPfb, FireworkLaunchAnchor.position, Quaternion.identity);
-
-        //var shakeTween = firework.transform.DOShakePosition(ChargeInterval, 0.7f, 2, 5);
-        yield return new WaitForSeconds(ChargeInterval);
-
-        //shakeTween.Kill();
-        firework.transform.position = FireworkLaunchAnchor.position;
-
-        LifeTimeTimer = UnityEngine.Random.Range(MinLifetimeSeconds, MinLifetimeSeconds + UpperLifetimeVariationSeconds);
-
-        // should be in some kind of update function
-        var flyTween = firework.transform.DOMove(FireworkLaunchAnchor.position + new Vector3(0, LifeTimeTimer * FireworkSpeed * MetersPerUnit), LifeTimeTimer).SetEase(Ease.Linear);
-        int overallDistanceMeters = 0;
-        // calculate distance every frame
-        while(LifeTimeTimer > 0)
-        {
-            overallDistanceMeters = (int)((firework.transform.position.y - FireworkLaunchAnchor.position.y) / MetersPerUnit);
-            var distanceRounded = Math.Round((double)overallDistanceMeters, 2);
-            CurrentTravelledDistanceMetersT.text = $"Travelled meters: {distanceRounded}m";
-            
-            LifeTimeTimer -= Time.deltaTime;
-            yield return null;
-        }
-        flyTween.Kill();
-
-        overallDistanceMeters = (int)((firework.transform.position.y - FireworkLaunchAnchor.position.y) / MetersPerUnit);
-        var rounded = Math.Round((double)overallDistanceMeters, 2);
-        CurrentTravelledDistanceMetersT.text = $"Travelled meters: {rounded}m";
-
-        Destroy(firework);
-
-        var coinsGained = overallDistanceMeters * CoinsPerMeter;
-
-        Debug.Log($"Distance travelled: {overallDistanceMeters}m");
-        Debug.Log($"Gained: {coinsGained} coins");
-
-        Coins += coinsGained;
-        CoinsT.text = $"Coins: {Coins}";
-
-        yield return new WaitForSeconds(RechargeInterval);
-        // okay I will change this later but for now I am just going to observe
-        yield return LaunchFirework();
-    }
 }
