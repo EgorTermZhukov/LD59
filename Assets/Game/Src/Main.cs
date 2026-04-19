@@ -23,33 +23,28 @@ public class Main : MonoBehaviour
     public float MetersPerUnit;
 
 
-    public float LifeTimeTimer;
-
-
-    public float ChargeTimer;
-
     public int CoinsPerMeter = 1;
 
     public float Coins = 0;
+    public string PersonsName;
 
 
-
+    public GameObject NotchPfb;
     public FireworkLauncher LauncherPfb;
+
     public Transform LauncherAnchor;
 
-    
     public float TravelledMeters;
 
-    public TMP_Text CurrentTravelledDistanceMetersT;
-    public TMP_Text CoinsT;
 
-    public LineRenderer LineRenderer;
+    public LineRenderer NotchLinePfb;
     public Transform RulerStartAnchor;
     public float RulerLength = 5f;
 
-    public GameObject NotchPfb;
 
     public List<FireworkLauncher> Launchers;
+
+    public List<GameObject> Notches;
     void Awake()
     {
         G.main = this;
@@ -58,35 +53,64 @@ public class Main : MonoBehaviour
     {
         MetersPerUnit = (float)PixelsPerUnit / PixelsPerMeter;
         Debug.Log($"Meter size: {MetersPerUnit} per unit");
-        LineRenderer.SetPositions(new Vector3[]
-        {
-            RulerStartAnchor.position,
-            new Vector3(RulerStartAnchor.position.x, RulerStartAnchor.position.y + RulerLength, RulerStartAnchor.position.z)
-        });
 
-        for(int i = 0; i < 20; i++)
+        Notches = new List<GameObject>();
+        for(int i = 1; i < 20; i++)
         {
-            var position = i / MetersPerUnit * Vector3.up +  LauncherPfb.FireworkLaunchAnchor.position;
-            Instantiate(NotchPfb, position, Quaternion.identity);
+            var position = (i / MetersPerUnit * Vector3.up) + RulerStartAnchor.position;
+            var notch = Instantiate(NotchLinePfb, new Vector3(RulerStartAnchor.position.x, position.y), Quaternion.identity);
+            notch.SetPositions(new Vector3[]
+            {
+                position + Vector3.left * 16f,
+                position + Vector3.right * 16f
+            });
+            Debug.Log(notch.transform.position);
+            Debug.Log($"Start anchor positon: {RulerStartAnchor.position}");
+
+            Notches.Add(notch.gameObject);
         }
 
         Coins = 0;
-        CoinsT.text = $"$ {Coins}";
+        G.ui.UpdateCoins(Coins);
+
+        HideNotches();
+
         StartCoroutine(CreateLauncher());
     }
     void Update()
     {
     }
-    public void EvaluateCoinsPerDistance(float overallDistanceMeters)
+    public void ShowNotches()
+    {
+        foreach(var notch in Notches)
+        {
+            notch.SetActive(true);
+        }
+    }
+    public void HideNotches()
+    {
+        foreach (var notch in Notches)
+        {
+            notch.SetActive(false);
+        }
+    }
+
+    // Reference firework box
+    public void EvaluateCoinsPerDistanceAndSpawnPopup(float overallDistanceMeters, Vector3 popupPosition)
     {
 
         float coinsGained = overallDistanceMeters * CoinsPerMeter;
-
+        float coinsGainedRound = (float)Math.Round((double)coinsGained, 1); 
         Debug.Log($"Distance travelled: {overallDistanceMeters}m");
         Debug.Log($"Gained: {coinsGained} coins");
 
-        Coins += (float) Math.Round((double)coinsGained, 1);
-        CoinsT.text = $"$ {Coins}";
+        Coins += (float)Math.Round((double)coinsGained, 1);
+        Coins = (float)Math.Round(Coins, 1);
+
+
+        G.ui.SpawnPopup($"+ {G.ui.FormatString(coinsGainedRound)}", PopupType.Coin, popupPosition);
+
+        G.ui.UpdateCoins(Coins);
     }
     public IEnumerator CreateLauncher()
     {
@@ -100,9 +124,4 @@ public class Main : MonoBehaviour
             yield return _waitForSeconds1;
         }
     }
-
-    // should remake all of this into an update function
-    // the stand should also be refreshed while the firework launches i think
-    // tweens don't work like that...
-
 }

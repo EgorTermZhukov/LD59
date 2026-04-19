@@ -1,8 +1,6 @@
-using Mono.Cecil.Cil;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.WSA;
 
 public class Firework : MonoBehaviour
 {
@@ -47,8 +45,6 @@ public class Firework : MonoBehaviour
 
     public Vector3 DirectionAtWobbleStart;
 
-    // will change over time
-    // frequency will the the function of 
 
     void Start()
     {

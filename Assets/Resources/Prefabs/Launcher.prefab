@@ -181,6 +181,37 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_renderer: {fileID: 6915207621617443407}
   m_maskType: 0
+--- !u!1 &3925763442724793915
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4403210578937986275}
+  m_Layer: 0
+  m_Name: GroundAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4403210578937986275
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3925763442724793915}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.375, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5037475343230907884}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4811328063404415921
 GameObject:
   m_ObjectHideFlags: 0
@@ -606,6 +637,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5591937176658996366}
+  - {fileID: 4403210578937986275}
   - {fileID: 957444580406780158}
   - {fileID: 9057807863685444732}
   - {fileID: 1242575133626007461}
@@ -685,6 +717,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FireworkLauncher
   FireworkPfb: {fileID: 1451829477338447213, guid: 73ce672a9b0f3cf0aa5017a99b23228b, type: 3}
   FireworkLaunchAnchor: {fileID: 5591937176658996366}
+  GroundAnchor: {fileID: 4403210578937986275}
   StartSpeed: 0.5
   TopSpeed: 4
   StartingAcceleration: 0

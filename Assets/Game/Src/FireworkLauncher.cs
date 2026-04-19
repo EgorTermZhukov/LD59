@@ -1,10 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.WSA;
 
 public enum LauncherState
 {
@@ -18,6 +15,7 @@ public class FireworkLauncher : MonoBehaviour
     // References
     public Firework FireworkPfb;
     public Transform FireworkLaunchAnchor;
+    public Transform GroundAnchor;
 
 
     // Parameters
@@ -102,14 +100,16 @@ public class FireworkLauncher : MonoBehaviour
     }
     public void EvaluateExplosion(Firework firework)
     {
-        float overallDistanceMeters = (firework.transform.position.y - FireworkLaunchAnchor.position.y) * G.main.MetersPerUnit;
+        // change launcher anchor to ground anchor
+        var fireworkPosition = firework.transform.position;
+        float overallDistanceMeters = (firework.transform.position.y - GroundAnchor.position.y) * G.main.MetersPerUnit;
         var distanceRounded = (float)Math.Round(overallDistanceMeters, 2);
         ActiveFireworks.Remove(firework);
 
         // may move explode here in case I want to apply effects and such
         Debug.Log($"Firework flew for {firework.InitialLifetime}s");
         firework.Explode();
-        G.main.EvaluateCoinsPerDistance(distanceRounded);
+        G.main.EvaluateCoinsPerDistanceAndSpawnPopup(distanceRounded, fireworkPosition);
     }
     public void StartSetupFirework()
     {
@@ -135,51 +135,4 @@ public class FireworkLauncher : MonoBehaviour
         CurrentAccelerationT.text = $"{firework.Acceleration}m2/s";
         CurrentDistanceT.text = $"{distanceRounded}m";
     }
-    /*
-    public IEnumerator LaunchFirework()
-    {
-        CurrentTravelledDistanceMetersT.text = "Travelled meters: 0";
-
-        var firework = Instantiate(FireworkPfb, FireworkLaunchAnchor.position, Quaternion.identity);
-
-        //var shakeTween = firework.transform.DOShakePosition(ChargeInterval, 0.7f, 2, 5);
-        yield return new WaitForSeconds(ChargeInterval);
-
-        //shakeTween.Kill();
-        firework.transform.position = FireworkLaunchAnchor.position;
-
-        LifeTimeTimer = UnityEngine.Random.Range(MinLifetimeSeconds, MinLifetimeSeconds + UpperLifetimeVariationSeconds);
-
-        // should be in some kind of update function
-        var flyTween = firework.transform.DOMove(FireworkLaunchAnchor.position + new Vector3(0, LifeTimeTimer * FireworkSpeed * MetersPerUnit), LifeTimeTimer).SetEase(Ease.Linear);
-        int overallDistanceMeters = 0;
-        // calculate distance every frame
-        while (LifeTimeTimer > 0)
-        {
-            overallDistanceMeters = (int)((firework.transform.position.y - FireworkLaunchAnchor.position.y) / MetersPerUnit);
-            var distanceRounded = Math.Round((double)overallDistanceMeters, 2);
-            CurrentTravelledDistanceMetersT.text = $"Travelled meters: {distanceRounded}m";
-
-            LifeTimeTimer -= Time.deltaTime;
-            yield return null;
-        }
-        flyTween.Kill();
-
-        overallDistanceMeters = (int)((firework.transform.position.y - FireworkLaunchAnchor.position.y) / MetersPerUnit);
-        var rounded = Math.Round((double)overallDistanceMeters, 2);
-        CurrentTravelledDistanceMetersT.text = $"Travelled meters: {rounded}m";
-
-        Destroy(firework);
-
-        var coinsGained = overallDistanceMeters * CoinsPerMeter;
-
-        Debug.Log($"Distance travelled: {overallDistanceMeters}m");
-        Debug.Log($"Gained: {coinsGained} coins");
-
-        Coins += coinsGained;
-        CoinsT.text = $"Coins: {Coins}";
-
-        yield return new WaitForSeconds(RechargeInterval);
-    }
-    */
 }
