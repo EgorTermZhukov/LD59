@@ -25,22 +25,21 @@ public class Main : MonoBehaviour
 
     public int CoinsPerMeter = 1;
 
-    public float Coins = 0;
     public string PersonsName;
+    public float Coins = 0;
 
 
-    public GameObject NotchPfb;
+
+    public LineRenderer NotchLinePfb;
     public FireworkLauncher LauncherPfb;
 
-    public Transform LauncherAnchor;
 
     public float TravelledMeters;
 
 
-    public LineRenderer NotchLinePfb;
     public Transform RulerStartAnchor;
-    public float RulerLength = 5f;
 
+    public Transform LauncherAnchor;
 
     public List<FireworkLauncher> Launchers;
 

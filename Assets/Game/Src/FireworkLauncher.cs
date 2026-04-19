@@ -28,7 +28,7 @@ public class FireworkLauncher : MonoBehaviour
     public float MinLifetimeSeconds;
     public float UpperLifetimeVariationSeconds;
 
-    public float SetupTimeSeconds;
+    public float StartupTimeSeconds;
     public float RechargeIntervalSeconds;
 
     public TMP_Text CurrentDistanceT;
@@ -60,11 +60,11 @@ public class FireworkLauncher : MonoBehaviour
         StartSpeed = 10f;
         MinLifetimeSeconds = 0.5f;
         UpperLifetimeVariationSeconds = 0f;
-        SetupTimeSeconds = 4f;
+        StartupTimeSeconds = 4f;
 
 
-        SetupTimer = SetupTimeSeconds;
-        StartSetupFirework();
+        SetupTimer = StartupTimeSeconds;
+        StartupFirework();
     }
     void Start()
     {
@@ -79,7 +79,7 @@ public class FireworkLauncher : MonoBehaviour
             SetupTimer -= Time.deltaTime;
             if(SetupTimer <= 0f)
             {
-                SetupTimer = SetupTimeSeconds;
+                SetupTimer = StartupTimeSeconds;
                 LaunchFirework(CurrentChargedFirework);
                 RechargeTimer = CurrentChargedFirework.Lifetime; 
                 CurrentChargedFirework = null;
@@ -93,7 +93,7 @@ public class FireworkLauncher : MonoBehaviour
             if(RechargeTimer <= 0f)
             {
                 RechargeTimer = RechargeIntervalSeconds;
-                StartSetupFirework();
+                StartupFirework();
                 State = LauncherState.Setup;
             }
         }
@@ -111,7 +111,7 @@ public class FireworkLauncher : MonoBehaviour
         firework.Explode();
         G.main.EvaluateCoinsPerDistanceAndSpawnPopup(distanceRounded, fireworkPosition);
     }
-    public void StartSetupFirework()
+    public void StartupFirework()
     {
         Debug.Log("Starting up the firework...");
         // change to create firework later, or move some kind of puff effect to the start method of firework

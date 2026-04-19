@@ -11,7 +11,6 @@ public class Firework : MonoBehaviour
     public ParticleSystem CreatedTrailParticles;
 
     public FireworkLauncher Launcher;
-    // define state there but every object is managed by the launcher OR IS IT
 
     public Transform FuseAnchor;
 
@@ -19,13 +18,17 @@ public class Firework : MonoBehaviour
     public float InitialLifetime;
 
     public Vector3 Direction = Vector3.up;
+    public Vector3 DirectionAtWobbleStart;
 
-    public float Speed;
-    public float Acceleration;
-
+    // flags
     public bool Launched = false;
     public bool IsAlive = true;
     public bool YWobbleStarted = false;
+
+    // speed
+    public float Speed;
+    public float Acceleration;
+
 
     // Wobbling
     public float FrequencyX = 5f;
@@ -35,15 +38,13 @@ public class Firework : MonoBehaviour
     public float FrequencyY = 0.5f;
     public float PhaseY = 0f;
     public float AmplitudeY = 1f;
-    public float MaxFrequencyY = 2f;
 
     public float TimeUntilYWobbleStartsSeconds; 
 
-    public float WobbleLifetimeQuantity = 0.1f;
+    public float WobbleDelay = 0.1f;
 
     public float LastSineOffsetX;
 
-    public Vector3 DirectionAtWobbleStart;
 
 
     void Start()
@@ -91,9 +92,6 @@ public class Firework : MonoBehaviour
         if(Lifetime <= 0f)
             AskForExplosion();
 
-        //FrequencyY += FrequencyYPerSecond * Time.deltaTime;
-        FrequencyY = Mathf.Min(FrequencyY, MaxFrequencyY);
-
         Lifetime -= Time.deltaTime;
         TimeUntilYWobbleStartsSeconds -= Time.deltaTime;
         LastSineOffsetX = sineOffsetX;
@@ -131,8 +129,8 @@ public class Firework : MonoBehaviour
         PhaseX = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
         PhaseY = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
 
-        //TimeUntilYWobbleStartsSeconds = Lifetime - WobbleLifetimeQuantity;
-        TimeUntilYWobbleStartsSeconds = 0f;
-        // play some charging animation, like shake
+        TimeUntilYWobbleStartsSeconds = WobbleDelay;
+
+        // play some charging animation, like shake and add a continuous fushhh sound
     }
 }
