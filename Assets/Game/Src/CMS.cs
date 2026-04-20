@@ -1,33 +1,99 @@
+using System;
 using System.Collections.Generic;
 using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 
 
+public enum UpgradeType
+{
+    IncLifetime,
+    IncSpeed,
+    IncFireworkCount,
+    IncAcceleration,
+    DecDrag,
+    IncWobbleDelay,
+    DecWobbleFreqX,
+    DecWobbleFreqY,
+    IncCoinsPerMeter,
+    DecStartupTime,
+    DecReloadTime,
+    IncBoxesCount,
+    UnlockClicking,
+    UnlockTrajectory
+}
+
 public class UpgradeData
 {
     public string id;
+    public string name;
+    public UpgradeType type;
 
     // (value, cost)
-    public List<(float v, float c)> IncLifetime;
-    public List<(float v, float c)> IncSpeed;
-    public List<(int v, float c)> IncFireworkCount;
-    public List<(float v, float c)> IncAcceleration;
-    public List<(float v, float c)> DecDrag;
-    public List<(float v, float c)> IncWobbleDelay;
-    public List<(float v, float c)> DecWobbleFreqX;
-    public List<(float v, float c)> DecWobbleFreqY;
-    public List<(float v, float c)> IncCoinsPerMeter;
-    public List<(float v, float c)> DecStartupTime;
-    public List<(float v, float c)> DecReloadTime;
-    public List<(int v, float c)> IncBoxesCount;
+    public List<(float v, float c)> incLifetime;
+    public List<(float v, float c)> incSpeed;
+    public List<(int v, float c)> incFireworkCount;
+    public List<(float v, float c)> incAcceleration;
+    public List<(float v, float c)> decDrag;
+    public List<(float v, float c)> incWobbleDelay;
+    public List<(float v, float c)> decWobbleFreqX;
+    public List<(float v, float c)> decWobbleFreqY;
+    public List<(float v, float c)> incCoinsPerMeter;
+    public List<(float v, float c)> decStartupTime;
+    public List<(float v, float c)> decReloadTime;
+    public List<(int v, float c)> incBoxesCount;
 
     public bool UnlockClicking;
     public bool UnlockTrajectory;
+
+    // thanks claude for the solution, very nice type matching
+    public float GetCost(int level)
+    {
+        return type switch
+        {
+            UpgradeType.IncLifetime => incLifetime[level].c,
+            UpgradeType.IncSpeed => incSpeed[level].c,
+            UpgradeType.IncFireworkCount => incFireworkCount[level].c,
+            UpgradeType.IncBoxesCount => incBoxesCount[level].c,
+            UpgradeType.IncCoinsPerMeter => incCoinsPerMeter[level].c,
+            UpgradeType.DecDrag => decDrag[level].c,
+            _ => throw new Exception($"Unhandled UpgradeType: {type}")
+        };
+    }
+    public int GetAvaliableLevels()
+    {
+        return type switch
+        {
+            UpgradeType.IncLifetime => incLifetime.Count,
+            UpgradeType.IncSpeed => incSpeed.Count,
+            UpgradeType.IncFireworkCount => incFireworkCount.Count,
+            UpgradeType.IncBoxesCount => incBoxesCount.Count,
+            UpgradeType.IncCoinsPerMeter => incCoinsPerMeter.Count,
+            UpgradeType.DecDrag => decDrag.Count,
+            _ => throw new Exception($"Unhandled UpgradeType: {type}")
+        };
+    }
+
+    // put this into the station
+    /*
+    public void Apply(int level)
+    {
+        switch (type)
+        {
+            case UpgradeType.IncLifetime: BaseValues.lifetime += incLifetime[level].v; break;
+            case UpgradeType.IncSpeed: BaseValues.startSpeed += incSpeed[level].v; break;
+            case UpgradeType.IncFireworkCount: BaseValues.fireworks += incFireworkCount[level].v; break;
+            case UpgradeType.IncBoxesCount: BaseValues.boxesCount += incBoxesCount[level].v; break;
+            case UpgradeType.IncCoinsPerMeter: BaseValues.coinsPerMeter += incCoinsPerMeter[level].v; break;
+            default: throw new Exception($"Unhandled UpgradeType: {type}");
+        }
+    }
+    */
+
 }
 
 public static class BaseValues
 {
-    public static string name = "Tim";
+    public static string personName = "Tim Murray";
     public static float coins = 0f;
     public static float lifetime = 0.5f;
     public static float startSpeed = 10f;
@@ -45,9 +111,10 @@ public static class BaseValues
 }
 public static class CMS
 {
+    public static bool Loaded = false;
     public static List<UpgradeData> All;
-    public static List<(string tab, List<string> upgrages)> FireworkBoxUpgrades;
-    public static List<(string tab, List<string> upgrades)> GuyUpgrades;
+    public static List<(string stationId, List<(string tab, List<string> upgrades)> stationData)> StationsUpgrades;
+
     public static void Load()
     {
         // maybe i should use some kind of curves or ask ai to generate values based on functions
@@ -56,7 +123,9 @@ public static class CMS
             new()
             {
                 id = "lifetime",
-                IncLifetime = new()
+                name = "Firework Lifetime",
+                type = UpgradeType.IncLifetime,
+                incLifetime = new()
                 {
                     (0.2f, 10f),
                     (0.2f, 40f),
@@ -67,7 +136,9 @@ public static class CMS
             new()
             {
                 id = "speed",
-                IncSpeed = new()
+                name = "Firework Speed",
+                type = UpgradeType.IncSpeed,
+                incSpeed = new()
                 {
                     (1f, 5f),
                     (2f, 10f)
@@ -76,7 +147,9 @@ public static class CMS
             new()
             {
                 id = "fireworks",
-                IncFireworkCount = new()
+                name = "More fireworks",
+                type = UpgradeType.IncFireworkCount,
+                incFireworkCount = new()
                 {
                     (1, 0f),
                     (1, 200f),
@@ -87,7 +160,9 @@ public static class CMS
             new()
             {
                 id = "boxes",
-                IncBoxesCount = new()
+                name = "More boxes",
+                type = UpgradeType.IncBoxesCount,
+                incBoxesCount = new()
                 {
                     (1, 0f)
                 }
@@ -95,30 +170,40 @@ public static class CMS
             new()
             {
                 id = "coins_per_meter",
-                IncCoinsPerMeter = new()
+                name = "More Coins Per Meter",
+                type = UpgradeType.IncCoinsPerMeter,
+                incCoinsPerMeter = new()
                 {
                     (0.5f, 50f),
                     (0.5f, 200f)
                 }
             }
         };
-        FireworkBoxUpgrades = new()
+        StationsUpgrades = new()
         {
-            ("1", new()
+            ("Firework Box", new()
             {
-                "lifetime",
-                "speed",
-                "fireworks"
-            })
-        };
-        GuyUpgrades = new()
-        {
-            ("1", new()
+                ("Firework", new()
+                {
+                    "lifetime",
+                    "speed",
+                    "fireworks"
+                }
+                )
+            }
+            ),
+            ("Guy", new()
             {
-                "boxes",
-                "coins_per_meter"
-            })
+                ("General", new()
+                {
+                    "boxes",
+                    "coins_per_Meter"
+                }
+                )
+            }
+            )
         };
+        Loaded = true;
     }
 
     /*

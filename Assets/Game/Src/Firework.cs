@@ -10,6 +10,7 @@ public class Firework : MonoBehaviour
 
     public ParticleSystem CreatedTrailParticles;
 
+    public FireworkBox FireworkBox;
     public FireworkLauncher Launcher;
 
     public Transform FuseAnchor;
@@ -28,31 +29,28 @@ public class Firework : MonoBehaviour
     // speed
     public float Speed;
     public float Acceleration;
+    public float Drag;
 
 
     // Wobbling
-    public float FrequencyX = 5f;
+    public float FrequencyX;
     public float PhaseX = 0f;
     public float AmplitudeX = 1f;
 
-    public float FrequencyY = 0.5f;
+    public float FrequencyY;
     public float PhaseY = 0f;
     public float AmplitudeY = 1f;
 
     public float TimeUntilYWobbleStartsSeconds; 
-
-    public float WobbleDelay = 0.1f;
-
-    public float LastSineOffsetX;
+    public float WobbleDelay;
 
 
 
     void Start()
     {
-        
+        // puff particles and sound and tween
     }
 
-    // It's all over the place, i will figure out the proper structure later
     void Update()
     {
         if (!Launched)
@@ -65,8 +63,6 @@ public class Firework : MonoBehaviour
         
         Speed = Mathf.Max(0f, Speed);
 
-        Acceleration -= Launcher.Drag * Time.deltaTime;
-
         var elapsed = InitialLifetime - Lifetime;
         if (TimeUntilYWobbleStartsSeconds <= 0 && !YWobbleStarted)
         {
@@ -74,12 +70,18 @@ public class Firework : MonoBehaviour
             YWobbleStarted = true;
         }
 
-        float sineOffsetX = Mathf.Sin(elapsed * FrequencyX + PhaseX) * AmplitudeX;
-        float sineOffsetY = 1f;
+        float sineOffsetX = 0f;
+        float sineOffsetY = 0f;
+
         if (YWobbleStarted)
         {
             sineOffsetX = DirectionAtWobbleStart.x + Mathf.Sin(elapsed * FrequencyX + PhaseX) * AmplitudeX;
             sineOffsetY = DirectionAtWobbleStart.y + Mathf.Sin(elapsed * FrequencyY + PhaseY) * AmplitudeY;
+        }
+        else
+        {
+            sineOffsetX = Mathf.Sin(elapsed * FrequencyX + PhaseX) * AmplitudeX;
+            sineOffsetY = 1f;
         }
 
         Direction = new Vector3(sineOffsetX, sineOffsetY, 0f).normalized;
@@ -90,22 +92,29 @@ public class Firework : MonoBehaviour
         Launcher.EvaluateAndShowStats(this);
 
         if(Lifetime <= 0f)
+        {
             AskForExplosion();
+            return;
+        }
 
         Lifetime -= Time.deltaTime;
+        Acceleration -= Drag * Time.deltaTime;
         TimeUntilYWobbleStartsSeconds -= Time.deltaTime;
-        LastSineOffsetX = sineOffsetX;
     }
     public void AskForExplosion()
     {
         IsAlive = false;
-        Launcher.EvaluateExplosion(this);
+        FireworkBox.EvaluateExplosion(this);
     }
     public void Explode()
     {
         CreatedTrailParticles.Stop();
         var explosionParticles = Instantiate(ExplosionParticles, transform.position, Quaternion.identity);
         AudioController.Instance.PlaySound3D("Explosion", transform.position);
+
+        Launcher = null;
+        FireworkBox = null;
+
         Destroy(gameObject);
     }
     public void Launch()
@@ -115,16 +124,24 @@ public class Firework : MonoBehaviour
         // Play some particles
     }
 
-    public void Setup(FireworkLauncher launcher)
+    public void Init(FireworkBox box, FireworkLauncher launcher)
     {
-        Launcher = launcher;
+        FireworkBox = box;
 
-        Lifetime = UnityEngine.Random.Range(launcher.MinLifetimeSeconds,
-         launcher.MinLifetimeSeconds + launcher.UpperLifetimeVariationSeconds);
+        //Lifetime = UnityEngine.Random.Range(launcher.MinLifetimeSeconds,
+        // launcher.MinLifetimeSeconds + launcher.UpperLifetimeVariationSeconds);A
+
+        Lifetime = box.FireworkLifetime;
         InitialLifetime = Lifetime;
 
-        Speed = launcher.StartSpeed;
-        Acceleration = launcher.StartingAcceleration;
+        Speed = box.FireworkStartSpeed;
+        Acceleration = box.Acceleration;
+        Drag = box.Drag;
+
+        FrequencyX = box.FrequencyX;
+        FrequencyY = box.FrequencyY;
+
+        WobbleDelay = box.WobbleDelay;
 
         PhaseX = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
         PhaseY = UnityEngine.Random.Range(0f, Mathf.PI * 2f);

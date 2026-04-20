@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Mono.Cecil.Cil;
 using TMPro;
 using UnityEngine;
@@ -14,6 +15,11 @@ public class UI : MonoBehaviour
     public CoinsDisplay CoinsDisplay;
 
     public TextPopup CoinPopup;
+
+    public StationWindow StationWindowPfb;
+
+    public Canvas WindowCanvas;
+    public List<StationWindow> StationWindows;
     void Awake()
     {
         G.ui = this;
@@ -49,5 +55,26 @@ public class UI : MonoBehaviour
 
         popup.GetComponent<RectTransform>().anchoredPosition = localPoint;
         popup.Set(text);
+    }
+    public StationWindow CreateStationWindowAndHide(IStation station, Vector3 worldPosition)
+    {
+        var window = Instantiate(StationWindowPfb, WindowCanvas.GetComponent<RectTransform>());
+        Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(Camera.main, worldPosition);
+        Vector2 localPoint;
+        if (Root.renderMode == RenderMode.ScreenSpaceCamera)
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(Root.GetComponent<RectTransform>(), screenPoint, Camera.main, out localPoint);
+        else
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(Root.GetComponent<RectTransform>(), screenPoint, null, out localPoint);
+        window.GetComponent<RectTransform>().anchoredPosition = localPoint;
+        window.Init(station);
+        window.gameObject.SetActive(false);
+        window.SetHeader(station.GetID());
+        return window;
+    }
+    public void HideUpgradeTooltip()
+    {
+    }
+    public void ShowUpgradeTooltip(string formattedStringToShow)
+    {
     }
 }

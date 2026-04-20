@@ -32,6 +32,7 @@ public class Main : MonoBehaviour
 
     public LineRenderer NotchLinePfb;
     public FireworkLauncher LauncherPfb;
+    public FireworkBox FireworkBoxPfb;
 
 
     public float TravelledMeters;
@@ -41,76 +42,103 @@ public class Main : MonoBehaviour
 
     public Transform LauncherAnchor;
 
-    public List<FireworkLauncher> Launchers;
 
-    public List<GameObject> Notches;
+    public List<GameObject> RulerNotches;
+
+    public List<FireworkBox> Boxes;
+
+    public List<Transform> BoxesPositions;
     void Awake()
     {
         G.main = this;
+        CMS.Load();
     }
     void Start()
     {
         MetersPerUnit = (float)PixelsPerUnit / PixelsPerMeter;
         Debug.Log($"Meter size: {MetersPerUnit} per unit");
 
-        Notches = new List<GameObject>();
+        RulerNotches = new List<GameObject>();
         for(int i = 1; i < 20; i++)
         {
             var position = (i / MetersPerUnit * Vector3.up) + RulerStartAnchor.position;
             var notch = Instantiate(NotchLinePfb, new Vector3(RulerStartAnchor.position.x, position.y), Quaternion.identity);
             notch.SetPositions(new Vector3[]
             {
-                position + Vector3.left * 16f,
-                position + Vector3.right * 16f
+                position + Vector3.left * 10f,
+                position + Vector3.right * 10f
             });
             Debug.Log(notch.transform.position);
             Debug.Log($"Start anchor positon: {RulerStartAnchor.position}");
 
-            Notches.Add(notch.gameObject);
+            RulerNotches.Add(notch.gameObject);
         }
+        HideRuler();
 
         Coins = 0;
         G.ui.UpdateCoins(Coins);
 
-        HideNotches();
+        StartCoroutine(CreateBoxesAndCreateWindows());
 
-        StartCoroutine(CreateLauncher());
+
+        //StartCoroutine(CreateLauncher());
     }
     void Update()
     {
     }
-    public void ShowNotches()
+    public void ShowRuler()
     {
-        foreach(var notch in Notches)
+        foreach(var notch in RulerNotches)
         {
             notch.SetActive(true);
         }
     }
-    public void HideNotches()
+    public void HideRuler()
     {
-        foreach (var notch in Notches)
+        foreach (var notch in RulerNotches)
         {
             notch.SetActive(false);
         }
     }
 
     // Reference firework box
-    public void EvaluateCoinsPerDistanceAndSpawnPopup(float overallDistanceMeters, Vector3 popupPosition)
+    public void EvaluateCoinsPerDistanceAndSpawnPopup(float overallDistanceMeters, FireworkBox fireworkBox, Vector3 popupPosition)
     {
+        // this should be evaluated in fireworkbox
+        // oh wait no, nvm, coins per meter is a char upgrade
 
         float coinsGained = overallDistanceMeters * CoinsPerMeter;
         float coinsGainedRound = (float)Math.Round((double)coinsGained, 1); 
         Debug.Log($"Distance travelled: {overallDistanceMeters}m");
         Debug.Log($"Gained: {coinsGained} coins");
 
-        Coins += (float)Math.Round((double)coinsGained, 1);
+        float coinsToReceive = (float)Math.Round((double)coinsGained, 1);
+        ReceiveCoins(coinsToReceive, popupPosition);
+    }
+    public void ReceiveCoins(float coinsToReceive, Vector3 popupPosition)
+    {
+        Coins += coinsToReceive;
         Coins = (float)Math.Round(Coins, 1);
-
-
-        G.ui.SpawnPopup($"+ {G.ui.FormatString(coinsGainedRound)}", PopupType.Coin, popupPosition);
-
+        G.ui.SpawnPopup($"+ {G.ui.FormatString(coinsToReceive)}", PopupType.Coin, popupPosition);
         G.ui.UpdateCoins(Coins);
     }
+    public void UnlockFireworkBox(FireworkBox box)
+    {
+        box.StationWindow.Unlock();
+    }
+    public IEnumerator CreateBoxesAndCreateWindows()
+    {
+        foreach(var boxAnchor in BoxesPositions)
+        {
+            var box = Instantiate(FireworkBoxPfb, boxAnchor);
+            var window = G.ui.CreateStationWindowAndHide(box, boxAnchor.position);
+            box.SetWindowReference(window);
+            Boxes.Add(box);
+            UnlockFireworkBox(box);
+            yield return new WaitForSeconds(2f);
+        }
+    }
+    /*
     public IEnumerator CreateLauncher()
     {
         yield return new WaitForSeconds(2f);
@@ -123,4 +151,5 @@ public class Main : MonoBehaviour
             yield return _waitForSeconds1;
         }
     }
+    */
 }
