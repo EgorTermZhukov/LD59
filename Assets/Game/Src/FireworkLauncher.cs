@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public enum LauncherState
 {
@@ -14,7 +15,6 @@ public class FireworkLauncher : MonoBehaviour
 {
     public Firework FireworkPfb;
     public Transform FireworkLaunchAnchor;
-    public Transform GroundAnchor;
     public FireworkBox FireworkBox;
 
 
@@ -24,20 +24,18 @@ public class FireworkLauncher : MonoBehaviour
     public TMP_Text CurrentLifetimeT;
 
 
-    public float StartupTimeSeconds;
-    public float RechargeIntervalSeconds;
-
-
     public LauncherState State = LauncherState.Idle;
 
     public Firework CurrentChargedFirework;
 
     public float StartupTimer;
-    public float RechargeTimer;
+    public float ReloadTimer;
 
-    public void Init()
+    public void Init(FireworkBox box)
     {
-        StartupTimer = StartupTimeSeconds;
+        FireworkBox = box;
+
+        StartupTimer = box.LauncherStartupTimeSeconds;
         StartupFirework();
     }
     void Start()
@@ -54,7 +52,7 @@ public class FireworkLauncher : MonoBehaviour
             if(StartupTimer <= 0f)
             {
                 StartupTimer = FireworkBox.LauncherStartupTimeSeconds;
-                RechargeTimer = FireworkBox.LauncherReloadTimeSeconds; 
+                ReloadTimer = FireworkBox.LauncherReloadTimeSeconds; 
 
                 State = LauncherState.Reload;
 
@@ -64,10 +62,10 @@ public class FireworkLauncher : MonoBehaviour
         }
         else
         {
-            RechargeTimer -= Time.deltaTime;
-            if(RechargeTimer <= 0f)
+            ReloadTimer -= Time.deltaTime;
+            if(ReloadTimer <= 0f)
             {
-                RechargeTimer = RechargeIntervalSeconds;
+                StartupTimer = FireworkBox.LauncherStartupTimeSeconds;
                 StartupFirework();
                 State = LauncherState.Startup;
             }

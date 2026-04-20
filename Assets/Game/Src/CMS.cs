@@ -97,6 +97,7 @@ public static class BaseValues
     public static float coins = 0f;
     public static float lifetime = 0.5f;
     public static float startSpeed = 10f;
+    public static int maxLaunchers = 4;
     public static int fireworks = 0;
     public static float acceleration = 0f;
     public static float drag = 0f;

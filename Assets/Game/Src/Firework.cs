@@ -101,6 +101,12 @@ public class Firework : MonoBehaviour
         Acceleration -= Drag * Time.deltaTime;
         TimeUntilYWobbleStartsSeconds -= Time.deltaTime;
     }
+    void OnTriggerEnter2D(Collider2D collision)
+    {
+        if(collision.tag == "Firework")
+            return;
+        AskForExplosion();
+    }
     public void AskForExplosion()
     {
         IsAlive = false;
@@ -127,6 +133,7 @@ public class Firework : MonoBehaviour
     public void Init(FireworkBox box, FireworkLauncher launcher)
     {
         FireworkBox = box;
+        Launcher = launcher;
 
         //Lifetime = UnityEngine.Random.Range(launcher.MinLifetimeSeconds,
         // launcher.MinLifetimeSeconds + launcher.UpperLifetimeVariationSeconds);A

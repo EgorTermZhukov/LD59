@@ -132,10 +132,12 @@ public class Main : MonoBehaviour
         {
             var box = Instantiate(FireworkBoxPfb, boxAnchor);
             var window = G.ui.CreateStationWindowAndHide(box, boxAnchor.position);
-            box.SetWindowReference(window);
+            box.Init(window);
+            box.Lock();
             Boxes.Add(box);
-            UnlockFireworkBox(box);
             yield return new WaitForSeconds(2f);
+            box.Unlock();
+            box.AddLauncherAndStart();
         }
     }
     /*

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 
 public class FireworkBox : MonoBehaviour, IStation
@@ -8,9 +9,13 @@ public class FireworkBox : MonoBehaviour, IStation
     // Or maybe construct some type of generic station window view?
 
     // Right now I should completely refactor the parameters out of firework and firework launcher
+    public FireworkLauncher LauncherPfb;
 
-    public FireworkLauncher FireworkLauncherPfb;
-    // reference window pfb
+    public float LauncherSpacingPixels = 16;
+
+    public SpriteRenderer Sprite;
+
+    public int MaxLaunchers;
 
     public float FireworkLifetime;
 
@@ -31,14 +36,6 @@ public class FireworkBox : MonoBehaviour, IStation
     public List<FireworkLauncher> Launchers;
     public List<Firework> ActiveFireworks;
 
-    void Start()
-    {
-        
-    }
-    void Update()
-    {
-
-    }
     public void EvaluateExplosion(Firework firework)
     {
         // change launcher anchor to ground anchor
@@ -56,9 +53,18 @@ public class FireworkBox : MonoBehaviour, IStation
     {
         ActiveFireworks.Add(firework);
     }
-    public void AddLauncher()
+    public void AddLauncherAndStart()
     {
-
+        if(Launchers.Count > MaxLaunchers)
+        {
+            Debug.LogError($"Cannot add more than {MaxLaunchers} launchers");
+            return;
+        }
+        // Move all launchers to the left because i have no idea how to add layouts
+        var launcherPosition = transform.position + ((float)LauncherSpacingPixels / G.main.PixelsPerUnit) * (Launchers.Count + 1) * Vector3.left;
+        var launcher = Instantiate(LauncherPfb, launcherPosition, quaternion.identity);
+        Launchers.Add(launcher);
+        launcher.Init(this);
     }
     public void ReceiveUpgrade(UpgradeData upgradeData, int level)
     {
@@ -81,11 +87,32 @@ public class FireworkBox : MonoBehaviour, IStation
         return "Firework Box";
     }
 
-    public void SetWindowReference(StationWindow window)
+    public void Init(StationWindow window)
     {
         StationWindow = window;
+        MaxLaunchers = BaseValues.maxLaunchers;
+        FireworkLifetime = BaseValues.lifetime;
+        FireworkStartSpeed = BaseValues.startSpeed;
+        Acceleration = BaseValues.acceleration;
+        Drag = BaseValues.drag;
+        FrequencyX = BaseValues.wobbleFreqX;
+        FrequencyY = BaseValues.wobbleFreqY;
+        WobbleDelay = BaseValues.wobbleDelay;
+        LauncherReloadTimeSeconds = BaseValues.reloadTime;
+        LauncherStartupTimeSeconds = BaseValues.startupTime;
     }
 
+    public void Unlock()
+    {
+        StationWindow.Unlock();
+        Sprite.color = Color.white;
+        // play puff animation or smth like that
+    }
+    public void Lock()
+    {
+        StationWindow.Lock();
+        Sprite.color = Color.red;
+    }
     // Some real bullshitting is going to come soon oh boy... 00:11, time to sleep...
     // I hope I will make it on time for the jam mode
 }

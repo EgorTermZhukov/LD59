@@ -81,6 +81,7 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         {
             var panel = UpgradeTab.AddUpgradePanel(upgrade);
             panel.SetLevelAndCost(0);
+            panel.Refresh();
         }
     }
     public void SetHeader(string header)
@@ -101,6 +102,11 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         gameObject.SetActive(true);
         View.SetActive(false);
     }
+    public void Lock()
+    {
+        IsStationUnlocked = false;
+        gameObject.SetActive(false);
+    }
     public void TryBuyUpgrade(UpgradeData data, int level, UpgradePanel panel)
     {
         var avaliableLevels = data.GetAvaliableLevels();
@@ -118,6 +124,14 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         }
         level++;
         panel.SetLevelAndCost(level);
+        panel.Refresh();
         Station.ReceiveUpgrade(data, level);
+    }
+    public void UpdateAllTabs()
+    {
+        foreach(var panel in UpgradeTab.Panels)
+        {
+            panel.Refresh();
+        }
     }
 }

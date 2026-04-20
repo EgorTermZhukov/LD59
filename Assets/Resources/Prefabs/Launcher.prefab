@@ -237,7 +237,7 @@ Transform:
   m_GameObject: {fileID: 4811328063404415921}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.375, z: 0}
+  m_LocalPosition: {x: 0, y: 0.625, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -717,24 +717,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FireworkLauncher
   FireworkPfb: {fileID: 1451829477338447213, guid: 73ce672a9b0f3cf0aa5017a99b23228b, type: 3}
   FireworkLaunchAnchor: {fileID: 5591937176658996366}
-  GroundAnchor: {fileID: 4403210578937986275}
-  StartSpeed: 0.5
-  TopSpeed: 4
-  StartingAcceleration: 0
-  Drag: 0
-  MinLifetimeSeconds: 0.3
-  UpperLifetimeVariationSeconds: 0.2
-  SetupTimeSeconds: 2
-  RechargeIntervalSeconds: 0
+  FireworkBox: {fileID: 0}
   CurrentDistanceT: {fileID: 2150320662094817643}
   CurrentSpeedT: {fileID: 7577023264785031631}
   CurrentAccelerationT: {fileID: 983906599553397285}
   CurrentLifetimeT: {fileID: 2337294445124325525}
   State: 0
   CurrentChargedFirework: {fileID: 0}
-  SetupTimer: 0
-  RechargeTimer: 0
-  ActiveFireworks: []
+  StartupTimer: 0
+  ReloadTimer: 0
 --- !u!1 &8469524887841741328
 GameObject:
   m_ObjectHideFlags: 0

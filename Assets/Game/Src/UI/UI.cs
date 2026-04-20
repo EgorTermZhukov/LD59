@@ -26,7 +26,13 @@ public class UI : MonoBehaviour
     }
     public void UpdateCoins(float coins)
     {
+        // Update all ui elements
         CoinsDisplay.Set(coins);
+
+        foreach(var window in StationWindows)
+        {
+            window.UpdateAllTabs();
+        }
     }
 
     void Update()
@@ -69,6 +75,7 @@ public class UI : MonoBehaviour
         window.Init(station);
         window.gameObject.SetActive(false);
         window.SetHeader(station.GetID());
+        StationWindows.Add(window);
         return window;
     }
     public void HideUpgradeTooltip()
