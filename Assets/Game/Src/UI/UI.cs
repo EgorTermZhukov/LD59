@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Mono.Cecil.Cil;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 
 public enum PopupType
@@ -11,6 +12,7 @@ public enum PopupType
 }
 public class UI : MonoBehaviour
 {
+    public Image Fader;
     public Canvas Root;
     public CoinsDisplay CoinsDisplay;
 
@@ -20,6 +22,7 @@ public class UI : MonoBehaviour
 
     public Canvas WindowCanvas;
     public List<StationWindow> StationWindows;
+
     void Awake()
     {
         G.ui = this;
@@ -60,7 +63,7 @@ public class UI : MonoBehaviour
             RectTransformUtility.ScreenPointToLocalPointInRectangle(Root.GetComponent<RectTransform>(), screenPoint, null, out localPoint);
 
         popup.GetComponent<RectTransform>().anchoredPosition = localPoint;
-        popup.Set(text);
+        popup.Set(text, localPoint.x);
     }
     public StationWindow CreateStationWindowAndHide(IStation station, Vector3 worldPosition)
     {
@@ -83,5 +86,22 @@ public class UI : MonoBehaviour
     }
     public void ShowUpgradeTooltip(string formattedStringToShow)
     {
+    }
+
+    public void HideHUD()
+    {
+        CoinsDisplay.gameObject.SetActive(false);
+    }
+    public void ShowFade()
+    {
+        Fader.gameObject.SetActive(true);
+    }
+    public void FadeIn()
+    {
+        Fader.DOFade(1f, 0.5f);
+    }
+    public void FadeOut()
+    {
+        Fader.DOFade(0f, 0.5f);
     }
 }

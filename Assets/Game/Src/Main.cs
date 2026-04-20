@@ -23,7 +23,7 @@ public class Main : MonoBehaviour
     public float MetersPerUnit;
 
 
-    public int CoinsPerMeter = 1;
+    public float CoinsPerMeter;
 
     public string PersonsName;
     public float Coins = 0;
@@ -33,6 +33,7 @@ public class Main : MonoBehaviour
     public LineRenderer NotchLinePfb;
     public FireworkLauncher LauncherPfb;
     public FireworkBox FireworkBoxPfb;
+    public Guy GuyPfb;
 
 
     public float TravelledMeters;
@@ -41,19 +42,26 @@ public class Main : MonoBehaviour
     public Transform RulerStartAnchor;
 
     public Transform LauncherAnchor;
+    public Transform GuyAnchor;
 
 
     public List<GameObject> RulerNotches;
 
+    public Guy Guy;
     public List<FireworkBox> Boxes;
-
     public List<Transform> BoxesPositions;
+
+    public bool FirstFireworkExploded = false;
+
     void Awake()
     {
         G.main = this;
         CMS.Load();
+        Coins = BaseValues.coins;
+        CoinsPerMeter = BaseValues.coinsPerMeter;
+        G.ui.HideHUD();
     }
-    void Start()
+    IEnumerator Start()
     {
         MetersPerUnit = (float)PixelsPerUnit / PixelsPerMeter;
         Debug.Log($"Meter size: {MetersPerUnit} per unit");
@@ -79,9 +87,14 @@ public class Main : MonoBehaviour
         G.ui.UpdateCoins(Coins);
 
         StartCoroutine(CreateBoxesAndCreateWindows());
-
-
+        StartCoroutine(CreateGuyAndCreateWindow());
+        AudioController.Instance.SetLoopAndPlay("Wind");
+        yield break;
         //StartCoroutine(CreateLauncher());
+    }
+    public void SetPersonsName(string name)
+    {
+        PersonsName = name;
     }
     void Update()
     {
@@ -114,6 +127,12 @@ public class Main : MonoBehaviour
 
         float coinsToReceive = (float)Math.Round((double)coinsGained, 1);
         ReceiveCoins(coinsToReceive, popupPosition);
+
+        if (!FirstFireworkExploded)
+        {
+            FirstFireworkExploded = true;
+            AudioController.Instance.SetLoopAndPlay("Piano", 1);
+        }
     }
     public void ReceiveCoins(float coinsToReceive, Vector3 popupPosition)
     {
@@ -122,9 +141,25 @@ public class Main : MonoBehaviour
         G.ui.SpawnPopup($"+ {G.ui.FormatString(coinsToReceive)}", PopupType.Coin, popupPosition);
         G.ui.UpdateCoins(Coins);
     }
+    public void SpendCoins(float coinsToSpend)
+    {
+        Coins -= coinsToSpend;
+        G.ui.UpdateCoins(Coins);
+    }
     public void UnlockFireworkBox(FireworkBox box)
     {
         box.StationWindow.Unlock();
+    }
+    public IEnumerator CreateGuyAndCreateWindow()
+    {
+        var guy = Instantiate(GuyPfb, GuyAnchor);
+        var window = G.ui.CreateStationWindowAndHide(guy, GuyAnchor.position);
+        guy.Init(window);
+        guy.Lock();
+        Guy = guy;
+        Guy.Unlock();
+
+        yield break;
     }
     public IEnumerator CreateBoxesAndCreateWindows()
     {
@@ -135,10 +170,10 @@ public class Main : MonoBehaviour
             box.Init(window);
             box.Lock();
             Boxes.Add(box);
-            yield return new WaitForSeconds(2f);
             box.Unlock();
-            box.AddLauncherAndStart();
+            //box.AddLauncherAndStart();
         }
+        yield break;
     }
     /*
     public IEnumerator CreateLauncher()

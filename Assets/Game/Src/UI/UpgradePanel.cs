@@ -34,14 +34,19 @@ public class UpgradePanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     public void Init(UpgradeData data, StationWindow stationWindow)
     {
         Data = data;
+        UpgradeNameT.text = FormatUpgradeName();
         StationWindow = stationWindow;
         MaxLevel = data.GetAvaliableLevels();
-        // Set text
+        if(MaxLevel < 0)
+            Debug.LogError($"Max level of {Data.id} is less than zero");
     }
     public void Refresh()
     {
-        if(Level > MaxLevel)
+        if(Level >= MaxLevel)
+        {
+            UpgradeCostT.color = Color.green;
             return;
+        }
         var cost = Data.GetCost(Level);
 
         if(G.main.Coins < cost)
@@ -63,7 +68,7 @@ public class UpgradePanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     {
         Level = level;
         UpgradeNameT.text = FormatUpgradeName();
-        if(level > MaxLevel)
+        if(level >= MaxLevel)
         {
             BuyButton.gameObject.SetActive(false);
             UpgradeCostT.text = "Max";
@@ -112,7 +117,7 @@ public class UpgradePanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     }
     public void TryBuy()
     {
-        if(Level > MaxLevel)
+        if(Level >= MaxLevel)
             return;
         StationWindow.TryBuyUpgrade(Data, Level, this);
     }

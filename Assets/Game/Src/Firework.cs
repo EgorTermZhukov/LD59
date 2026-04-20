@@ -114,7 +114,18 @@ public class Firework : MonoBehaviour
     }
     public void Explode()
     {
-        CreatedTrailParticles.Stop();
+        if (CreatedTrailParticles != null)
+        {
+            CreatedTrailParticles.transform.SetParent(null);
+            CreatedTrailParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            Destroy(CreatedTrailParticles.gameObject);
+        }
+        else
+        {
+            Debug.LogError("Null trail particle!");
+        }
+
+
         var explosionParticles = Instantiate(ExplosionParticles, transform.position, Quaternion.identity);
         AudioController.Instance.PlaySound3D("Explosion", transform.position);
 

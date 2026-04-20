@@ -76,18 +76,16 @@ public class FireworkLauncher : MonoBehaviour
     {
         State = LauncherState.Startup;
 
-        Debug.Log("Starting up the firework...");
-
         var firework = Instantiate(FireworkPfb, FireworkLaunchAnchor.position, Quaternion.identity);
         CurrentChargedFirework = firework;
 
         firework.Init(FireworkBox, this);
 
-        FireworkBox.AddFirework(firework);
     }
     public void LaunchFirework(Firework firework)
     {
         firework.Launch();
+        FireworkBox.AddFirework(firework);
         CurrentChargedFirework = null;
     }
 

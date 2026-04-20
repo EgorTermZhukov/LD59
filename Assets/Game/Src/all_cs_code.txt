@@ -1,0 +1,1962 @@
+
+--- Content of ./Main.cs ---
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using DG.Tweening;
+using JetBrains.Annotations;
+using TMPro;
+using UnityEngine;
+
+
+public class FireworkState
+{
+    public float Lifetime;
+    public float Speed;
+
+    // maybe some modifiers as well?
+}
+
+public class Main : MonoBehaviour
+{
+    private static WaitForSeconds _waitForSeconds1 = new WaitForSeconds(1f);
+    public int PixelsPerUnit = 16;
+    public int PixelsPerMeter = 64;
+    public float MetersPerUnit;
+
+
+    public float CoinsPerMeter;
+
+    public string PersonsName;
+    public float Coins = 0;
+
+
+
+    public LineRenderer NotchLinePfb;
+    public FireworkLauncher LauncherPfb;
+    public FireworkBox FireworkBoxPfb;
+    public Guy GuyPfb;
+
+
+    public float TravelledMeters;
+
+
+    public Transform RulerStartAnchor;
+
+    public Transform LauncherAnchor;
+    public Transform GuyAnchor;
+
+
+    public List<GameObject> RulerNotches;
+
+    public Guy Guy;
+    public List<FireworkBox> Boxes;
+    public List<Transform> BoxesPositions;
+
+    public bool FirstFireworkExploded = false;
+
+    void Awake()
+    {
+        G.main = this;
+        CMS.Load();
+        Coins = BaseValues.coins;
+        CoinsPerMeter = BaseValues.coinsPerMeter;
+    }
+    void Start()
+    {
+        MetersPerUnit = (float)PixelsPerUnit / PixelsPerMeter;
+        Debug.Log($"Meter size: {MetersPerUnit} per unit");
+
+        RulerNotches = new List<GameObject>();
+        for(int i = 1; i < 20; i++)
+        {
+            var position = (i / MetersPerUnit * Vector3.up) + RulerStartAnchor.position;
+            var notch = Instantiate(NotchLinePfb, new Vector3(RulerStartAnchor.position.x, position.y), Quaternion.identity);
+            notch.SetPositions(new Vector3[]
+            {
+                position + Vector3.left * 10f,
+                position + Vector3.right * 10f
+            });
+            Debug.Log(notch.transform.position);
+            Debug.Log($"Start anchor positon: {RulerStartAnchor.position}");
+
+            RulerNotches.Add(notch.gameObject);
+        }
+        HideRuler();
+
+        Coins = 0;
+        G.ui.UpdateCoins(Coins);
+
+        StartCoroutine(CreateBoxesAndCreateWindows());
+        StartCoroutine(CreateGuyAndCreateWindow());
+        AudioController.Instance.SetLoopAndPlay("Wind");
+
+        //StartCoroutine(CreateLauncher());
+    }
+    public void SetPersonsName(string name)
+    {
+        PersonsName = name;
+    }
+    void Update()
+    {
+    }
+    public void ShowRuler()
+    {
+        foreach(var notch in RulerNotches)
+        {
+            notch.SetActive(true);
+        }
+    }
+    public void HideRuler()
+    {
+        foreach (var notch in RulerNotches)
+        {
+            notch.SetActive(false);
+        }
+    }
+
+    // Reference firework box
+    public void EvaluateCoinsPerDistanceAndSpawnPopup(float overallDistanceMeters, FireworkBox fireworkBox, Vector3 popupPosition)
+    {
+        // this should be evaluated in fireworkbox
+        // oh wait no, nvm, coins per meter is a char upgrade
+
+        float coinsGained = overallDistanceMeters * CoinsPerMeter;
+        float coinsGainedRound = (float)Math.Round((double)coinsGained, 1); 
+        Debug.Log($"Distance travelled: {overallDistanceMeters}m");
+        Debug.Log($"Gained: {coinsGained} coins");
+
+        float coinsToReceive = (float)Math.Round((double)coinsGained, 1);
+        ReceiveCoins(coinsToReceive, popupPosition);
+
+        if (!FirstFireworkExploded)
+        {
+            FirstFireworkExploded = true;
+            AudioController.Instance.SetLoopAndPlay("Piano", 1);
+        }
+    }
+    public void ReceiveCoins(float coinsToReceive, Vector3 popupPosition)
+    {
+        Coins += coinsToReceive;
+        Coins = (float)Math.Round(Coins, 1);
+        G.ui.SpawnPopup($"+ {G.ui.FormatString(coinsToReceive)}", PopupType.Coin, popupPosition);
+        G.ui.UpdateCoins(Coins);
+    }
+    public void SpendCoins(float coinsToSpend)
+    {
+        Coins -= coinsToSpend;
+        G.ui.UpdateCoins(Coins);
+    }
+    public void UnlockFireworkBox(FireworkBox box)
+    {
+        box.StationWindow.Unlock();
+    }
+    public IEnumerator CreateGuyAndCreateWindow()
+    {
+        var guy = Instantiate(GuyPfb, GuyAnchor);
+        var window = G.ui.CreateStationWindowAndHide(guy, GuyAnchor.position);
+        guy.Init(window);
+        guy.Lock();
+        Guy = guy;
+        Guy.Unlock();
+
+        yield break;
+    }
+    public IEnumerator CreateBoxesAndCreateWindows()
+    {
+        foreach(var boxAnchor in BoxesPositions)
+        {
+            var box = Instantiate(FireworkBoxPfb, boxAnchor);
+            var window = G.ui.CreateStationWindowAndHide(box, boxAnchor.position);
+            box.Init(window);
+            box.Lock();
+            Boxes.Add(box);
+            box.Unlock();
+            //box.AddLauncherAndStart();
+        }
+        yield break;
+    }
+    /*
+    public IEnumerator CreateLauncher()
+    {
+        yield return new WaitForSeconds(2f);
+
+        for (int i = 0; i < 4; i++)
+        {
+            var launcher = Instantiate(LauncherPfb, LauncherAnchor.position + Vector3.left * (i * 20 / PixelsPerUnit), Quaternion.identity);
+            launcher.Init();
+            Launchers.Add(launcher);
+            yield return _waitForSeconds1;
+        }
+    }
+    */
+}
+
+
+
+
+--- Content of ./UI/CoinsDisplay.cs ---
+
+using DG.Tweening;
+using TMPro;
+using UnityEngine;
+
+public class CoinsDisplay : MonoBehaviour
+{
+    public TMP_Text CoinsT;
+    public float LatestValue;
+    public RectTransform CoinIcon;
+
+    public float CoinJumpDistance;
+
+    public Vector3 InitialCoinPosition;
+    public Vector3 InitialTextPosition;
+    void Start()
+    {
+        InitialCoinPosition = CoinIcon.position;
+        InitialTextPosition = CoinsT.transform.position;
+        CoinJumpDistance = 5 / G.main.PixelsPerUnit;
+    }
+    void Update()
+    {
+        
+    }
+    public void Set(float coins)
+    {
+        var delta = coins - LatestValue;
+        CoinsT.text = G.ui.FormatString(coins);
+        if (coins <= 0)
+            return;
+
+        CoinsT.DOKill();
+        CoinsT.transform.localScale = Vector3.one;
+
+
+        //Vector3 punchDir = new Vector3(0f, 2f / G.main.PixelsPerUnit, 0f);
+        //CoinsT.transform.DOPunchPosition(punchDir, 0.2f, 1, 0f);
+
+        //Vector3 punchScale = new Vector3(0f, -0.2f, 0f);
+        //CoinsT.transform.DOPunchScale(punchScale, 0.2f, 1, 0f);
+    }
+}
+
+
+
+
+--- Content of ./UI/TabButton.cs ---
+
+using UnityEngine;
+using UnityEngine.EventSystems;
+
+public class TabButton : MonoBehaviour, IPointerClickHandler
+{
+    public TabGroup TabGroup;
+    public string TabName;
+
+    public void Init(TabGroup tabGroup, string tabName)
+    {
+        TabGroup = tabGroup;
+        TabName = tabName;
+    }
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        TabGroup.Show(TabName);
+
+        // Display
+        if(TabGroup.CurrentOpenedTab == TabName)
+            return;
+    }
+
+    void Start()
+    {
+        
+    }
+
+    void Update()
+    {
+        
+    }
+}
+
+
+
+
+--- Content of ./UI/TabGroup.cs ---
+
+using System.Collections.Generic;
+using UnityEngine;
+
+public interface ITab
+{
+    public void Show();
+    public void Hide();
+    public string GetName();
+}
+
+public class TabGroup : MonoBehaviour
+{
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
+
+    public List<(string name, ITab tab)> Tabs;
+
+    public string CurrentOpenedTab = "None";
+
+    void Start()
+    {
+        
+    }
+    // Update is called once per frame
+    void Update()
+    {
+        
+    }
+    public void Show(string tabName)
+    {
+        var tab = Tabs.Find(x=>x.name == tabName);
+        if(tab.name == null)
+        {
+            Debug.LogError($"Tab with the name {tabName} is not registered in {gameObject.name}");
+            return;
+        }
+        if(tab.name == CurrentOpenedTab)
+        {
+            return;
+        }
+        tab.tab.Show();
+    }
+    public void AddTab(ITab tab, TabButton button, string name)
+    {
+        Tabs.Add(new (name, tab));
+        button.Init(this, name);
+    }
+}
+
+
+
+
+--- Content of ./UI/UI.cs ---
+
+using System;
+using System.Collections.Generic;
+using Mono.Cecil.Cil;
+using TMPro;
+using UnityEngine;
+
+
+public enum PopupType
+{
+    Coin
+}
+public class UI : MonoBehaviour
+{
+    public Canvas Root;
+    public CoinsDisplay CoinsDisplay;
+
+    public TextPopup CoinPopup;
+
+    public StationWindow StationWindowPfb;
+
+    public Canvas WindowCanvas;
+    public List<StationWindow> StationWindows;
+    void Awake()
+    {
+        G.ui = this;
+    }
+    public void UpdateCoins(float coins)
+    {
+        // Update all ui elements
+        CoinsDisplay.Set(coins);
+
+        foreach(var window in StationWindows)
+        {
+            window.UpdateAllTabs();
+        }
+    }
+
+    void Update()
+    {
+        
+    }
+    public string FormatString(float value)
+    {
+        return value switch
+        {
+            >= 1_000_000 => (value / 1_000_000f).ToString("0.#") + "M",
+            >= 1_000 => (value / 1_000f).ToString("0.#") + "k",
+            _ => value.ToString("0.#")
+        };
+    }
+    public void SpawnPopup(string text, PopupType type, Vector3 worldPosition)
+    {
+        var popup = Instantiate(CoinPopup, Root.GetComponent<RectTransform>());
+
+        Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(Camera.main, worldPosition);
+        Vector2 localPoint;
+        if (Root.renderMode == RenderMode.ScreenSpaceCamera)
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(Root.GetComponent<RectTransform>(), screenPoint, Camera.main, out localPoint);
+        else
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(Root.GetComponent<RectTransform>(), screenPoint, null, out localPoint);
+
+        popup.GetComponent<RectTransform>().anchoredPosition = localPoint;
+        popup.Set(text, localPoint.x);
+    }
+    public StationWindow CreateStationWindowAndHide(IStation station, Vector3 worldPosition)
+    {
+        var window = Instantiate(StationWindowPfb, WindowCanvas.GetComponent<RectTransform>());
+        Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(Camera.main, worldPosition);
+        Vector2 localPoint;
+        if (Root.renderMode == RenderMode.ScreenSpaceCamera)
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(Root.GetComponent<RectTransform>(), screenPoint, Camera.main, out localPoint);
+        else
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(Root.GetComponent<RectTransform>(), screenPoint, null, out localPoint);
+        window.GetComponent<RectTransform>().anchoredPosition = localPoint;
+        window.Init(station, station.GetIcon());
+        window.gameObject.SetActive(false);
+        window.SetHeader(station.GetID());
+        StationWindows.Add(window);
+        return window;
+    }
+    public void HideUpgradeTooltip()
+    {
+    }
+    public void ShowUpgradeTooltip(string formattedStringToShow)
+    {
+    }
+}
+
+
+
+
+--- Content of ./UI/Window.cs ---
+
+using System;
+using TMPro;
+using UnityEngine;
+using UnityEngine.Events;
+
+public class Window : MonoBehaviour
+{
+    public bool Opened = false;
+    public TMP_Text Header;
+
+    public string OpenSound;
+    public string ClosedSound;
+
+
+    public UnityEvent OnWindowOpen;
+    public UnityEvent OnWindowClosed;
+
+    //SetSorting Order when focused
+
+    public void Open()
+    {
+        OnWindowOpen?.Invoke();
+        Opened = true;
+        gameObject.SetActive(Opened);
+        AudioController.Instance.PlaySound2D(OpenSound);
+    }
+
+    public void Close()
+    {
+        OnWindowClosed?.Invoke();
+        Opened = false;
+        gameObject.SetActive(Opened);
+        AudioController.Instance.PlaySound2D(ClosedSound);
+    }
+
+    void Start()
+    {
+        
+    }
+    void Update()
+    {
+    }
+    public void SetTitle(string text)
+    {
+        if (Header != null)
+            Header.text = text;
+    }
+}
+
+
+
+
+--- Content of ./UI/WindowGroup.cs ---
+
+using System.Collections.Generic;
+using Unity.VisualScripting;
+using UnityEngine;
+
+[System.Serializable]
+public struct WindowReferenceData
+{
+    public string windowName;
+    public Window reference;
+}
+
+public class WindowGroup : MonoBehaviour
+{
+    [SerializeField]
+    public List<WindowReferenceData> RegisteredWindows;
+    public Window CurrentOpenedWindow;
+    public Window PlaceholderWindow;
+
+    public bool IsLocked = false;
+
+    void Start()
+    {
+        if(CurrentOpenedWindow != null)
+            CurrentOpenedWindow.Open();
+    }
+
+    void Update()
+    {
+        
+    }
+
+    public void OpenWindow(string windowName)
+    {
+        if(IsLocked)
+            return;
+        var window = RegisteredWindows.Find(x => x.windowName == windowName);
+
+        if (window.reference == null)
+        {
+            CloseCurrentlyOpenedWindow();
+            PlaceholderWindow.SetTitle(windowName);
+            PlaceholderWindow.Open();
+            CurrentOpenedWindow = PlaceholderWindow;
+            return;
+        }
+        if (CurrentOpenedWindow == window.reference)
+            return;
+
+        CloseCurrentlyOpenedWindow();
+        window.reference.Open();
+        CurrentOpenedWindow = window.reference;
+    }
+    public void CloseCurrentlyOpenedWindow()
+    {
+        if (CurrentOpenedWindow == null)
+            return;
+        CurrentOpenedWindow.Close();
+        CurrentOpenedWindow = null;
+    }
+    public void LockCurrentWindow()
+    {
+        IsLocked = true;
+    }
+    public void UnlockCurrentWindow()
+    {
+        IsLocked = false;
+    }
+}
+
+
+
+
+--- Content of ./UI/TextPopup.cs ---
+
+using DG.Tweening;
+using Microsoft.Unity.VisualStudio.Editor;
+using TMPro;
+using UnityEngine;
+
+public class TextPopup : MonoBehaviour
+{
+    public Image Icon;
+    public TMP_Text Text;
+
+
+    void Start()
+    {
+    }
+    void Update()
+    {
+    }
+    public void Set(string text, float localX)
+    {
+        //6f / G.main.PixelsPerUnit
+        Text.text = text;
+        var rect = GetComponent<RectTransform>();
+
+        float xNudge = 2f / G.main.PixelsPerUnit;
+        float xDir = localX > 0 ? -xNudge :xNudge;
+        rect.DOLocalMoveY(2f / G.main.PixelsPerUnit, 1f, true).SetEase(Ease.OutCubic).OnComplete(() => Destroy(gameObject));
+        rect.DOLocalMoveX(xDir, 1f, true).SetEase(Ease.OutCubic);
+    }
+}
+
+
+
+
+--- Content of ./UI/ProgressBar.cs ---
+
+using DG.Tweening;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class ProgressBar : MonoBehaviour
+{
+    public Image GhostImage;
+    public Image FillImage;
+
+    public float CurrentProgress;
+    public float PreviousProgress;
+
+    void Start()
+    {
+        CurrentProgress = FillImage.fillAmount;
+        PreviousProgress = FillImage.fillAmount;
+    }
+    void Update()
+    {
+        
+    }
+    public void SetValue(float fillAmount, bool ghosting = false, float ghostingSpeed = 1f)
+    {
+        FillImage.DOKill();
+        PreviousProgress = CurrentProgress;
+
+        var boundAmount = Mathf.Clamp(fillAmount, 0f, 1f);
+        CurrentProgress = boundAmount;
+
+        if (ghosting)
+        {
+            GhostImage.fillAmount = CurrentProgress;
+            FillImage.DOFillAmount(CurrentProgress, ghostingSpeed).SetEase(Ease.OutExpo);
+        }
+        else
+        {
+            FillImage.fillAmount = CurrentProgress;
+            GhostImage.fillAmount = CurrentProgress;
+        }
+    }
+}
+
+
+
+
+--- Content of ./UI/StationWindow.cs ---
+
+using System;
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+{
+    // Upgrade view will be there too, I will maybe think about a more
+    // interesting solution when im done with the gamejam
+
+    public Image OffscreenIcon;   // small icon RectTransform, center-anchored on the Canvas
+    public GameObject OffscreenIconRoot;
+    public float EdgePaddingPixels = 24f;
+
+
+    public TMP_Text Header;
+
+    public TabGroup TopTabs;
+
+    // ITab.Open close etc later
+
+    // I can later insert upgrade tab into tab group and manage it through this
+
+    public UpgradeTab UpgradeTab;
+
+    public GameObject View;
+    public Image Hover;
+
+    public UpgradeTab UpgradeTabPfb;
+
+    public Color ActiveHoverAlphaColor;
+    public Color InactiveHoverAlphaColor;
+
+    public List<UpgradeData> Upgrades;
+
+    public IStation Station;
+
+    public bool IsStationUnlocked = false;
+    public bool IsAlertShown = false;
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if(!IsStationUnlocked)
+            return;
+        if (IsAlertShown)
+        {
+            IsAlertShown = false;
+            Station.HideUnlockAllert();
+        }
+        View.SetActive(true);
+        Hover.color = ActiveHoverAlphaColor;
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if(!IsStationUnlocked)
+            return;
+
+        View.SetActive(false);
+        Hover.color = InactiveHoverAlphaColor;
+    }
+    public void Init(IStation station, Sprite offscreenIcon)
+    {
+        UpgradeTab.StationWindow = this;
+        Station = station;
+
+        string stationName = station.GetID();
+        var allStationUpgrades = CMS.StationsUpgrades.Find(x => x.stationId == stationName);
+
+        if(allStationUpgrades.stationId == null)
+        {
+            Debug.LogError($"Station with the id {stationName} is invalid");
+            return;
+        }
+
+        // for now instantiate just one tab without grouping
+        var tabData = allStationUpgrades.stationData[0];
+        var upgradesID = tabData.upgrades;
+        var upgradesToAdd = new List<UpgradeData>(); 
+
+        // I feel like i need to move this to cms in postjam version
+        foreach(var id in upgradesID)
+        {
+            var upgrade = CMS.All.Find(x=>x.id == id);
+            if(upgrade.id == null)
+                Debug.LogError($"Upgrade with the id {id} is invalid");
+            upgradesToAdd.Add(upgrade);
+        }
+        foreach(var upgrade in upgradesToAdd)
+        {
+            var panel = UpgradeTab.AddUpgradePanel(upgrade);
+            panel.SetLevelAndCost(0);
+            panel.Refresh();
+        }
+        OffscreenIcon.sprite = offscreenIcon;
+    }
+    public void SetHeader(string header)
+    {
+        Header.text = header;
+    }
+    public void UnlockUpgradeTab(string upgradeTabName)
+    {
+
+    }
+    public void Unlock()
+    {
+        IsAlertShown = true;
+        Station.ShowUnlockAllert();
+
+        if (IsStationUnlocked)
+        {
+            Debug.LogError("Station has already been unlocked");
+        }
+        IsStationUnlocked = true;
+        gameObject.SetActive(true);
+        View.SetActive(false);
+    }
+    public void Lock()
+    {
+        IsAlertShown = false;
+        IsStationUnlocked = false;
+        gameObject.SetActive(false);
+    }
+    public void TryBuyUpgrade(UpgradeData data, int level, UpgradePanel panel)
+    {
+        var avaliableLevels = data.GetAvaliableLevels();
+        if(avaliableLevels <= level)
+        {
+            Debug.Log($"Cannot buy upgrade with the name {data.name}, cannot increase past level {avaliableLevels}");
+            return;
+        }
+        float cost = data.GetCost(level);
+        if(G.main.Coins < cost)
+        {
+            Debug.Log($"Cannot buy upgrade with the name {data.name} of type {data.type}, with cost {cost}, of level {level}");
+            Debug.Log($"Current money {G.main.Coins}< cost {cost}");
+            return;
+        }
+        Station.ReceiveUpgrade(data, level);
+        G.main.SpendCoins(cost);
+        AudioController.Instance.PlaySound2D("Upgrade");
+        level++;
+        panel.SetLevelAndCost(level);
+        panel.Refresh();
+    }
+    public void UpdateAllTabs()
+    {
+        foreach(var panel in UpgradeTab.Panels)
+        {
+            panel.Refresh();
+        }
+    }
+
+    // Ai code to show and hide icon when station is offscreen
+
+    void Update()
+    {
+        if (!IsStationUnlocked || OffscreenIcon == null)
+            return;
+
+        // Station exposes its world position via its MonoBehaviour
+        // Wtf is this shit, how do you know the station is monobehaviour but whatever
+        Vector3 worldPos = ((MonoBehaviour)Station).transform.position;
+        Vector3 vp = Camera.main.WorldToViewportPoint(worldPos);
+
+        bool onScreen = vp.z > 0f
+                     && vp.x >= 0f && vp.x <= 1f
+                     && vp.y >= 0f && vp.y <= 1f;
+
+        if (onScreen)
+        {
+            OffscreenIconRoot.gameObject.SetActive(false);
+            return;
+        }
+
+        OffscreenIconRoot.gameObject.SetActive(true);
+
+        Vector2 size = G.ui.Root.GetComponent<RectTransform>().sizeDelta;
+        float halfH = size.y * 0.5f;
+
+        float canvasX = (vp.x - 0.5f) * size.x;
+        float canvasY = vp.y > 1f
+            ? halfH - EdgePaddingPixels   // above screen → pin to top
+            : -halfH + EdgePaddingPixels;  // below screen → pin to bottom
+
+        OffscreenIcon.GetComponent<RectTransform>().anchoredPosition = new Vector2(canvasX, canvasY);
+    }
+}
+
+
+
+
+--- Content of ./UI/RulerHover.cs ---
+
+using UnityEngine;
+using UnityEngine.EventSystems;
+
+public class RulerHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+{
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        //G.main.ShowRuler();
+        //Debug.Log("Showing ruler");
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        //G.main.HideRuler();
+        //Debug.Log("Hiding ruler");
+    }
+
+    void Start()
+    {
+        
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        
+    }
+}
+
+
+
+
+--- Content of ./UI/UpgradeTab.cs ---
+
+using System.Collections.Generic;
+using UnityEngine;
+
+public class UpgradeTab : MonoBehaviour, ITab
+{
+    public Transform Layouter;
+    public StationWindow StationWindow;
+
+    public UpgradePanel PanelPfb;
+
+    public List<UpgradePanel> Panels;
+
+    public string Name;
+    void Start()
+    {
+        
+    }
+    void Update()
+    {
+        
+    }
+    public void Init(string name)
+    {
+        Name = name;
+    }
+    public UpgradePanel AddUpgradePanel(UpgradeData upgradeData)
+    {
+        var panel = CreateUpgradePanel(upgradeData);
+        return panel;
+    }
+    public UpgradePanel CreateUpgradePanel(UpgradeData upgradeData)
+    {
+        var panel = Instantiate(PanelPfb, Layouter);
+        panel.Init(upgradeData, StationWindow);
+        Panels.Add(panel);
+        return panel;
+    }
+
+    public void Show()
+    {
+        gameObject.SetActive(true);
+    }
+    public void Hide()
+    {
+        gameObject.SetActive(false);
+    }
+    public string GetName()
+    {
+        return Name;
+    }
+
+}
+
+
+
+
+--- Content of ./UI/UpgradePanel.cs ---
+
+using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+public class UpgradePanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+{
+    public UpgradeData Data;
+    public int Level;
+    public StationWindow StationWindow;
+
+    public Button BuyButton;
+    public Image ButtonBG;
+    public TMP_Text ButtonText;
+
+    public Color BuyButtonOriginalColor;
+    public Color BuyButtonTint;
+
+
+    public TMP_Text UpgradeNameT;
+    public TMP_Text UpgradeCostT;
+
+    public float Cost;
+    public int MaxLevel;
+
+    void Start()
+    {
+        
+    }
+    void Update()
+    {
+        
+    }
+    public void Init(UpgradeData data, StationWindow stationWindow)
+    {
+        Data = data;
+        UpgradeNameT.text = FormatUpgradeName();
+        StationWindow = stationWindow;
+        MaxLevel = data.GetAvaliableLevels();
+        if(MaxLevel < 0)
+            Debug.LogError($"Max level of {Data.id} is less than zero");
+    }
+    public void Refresh()
+    {
+        if(Level >= MaxLevel)
+        {
+            UpgradeCostT.color = Color.green;
+            return;
+        }
+        var cost = Data.GetCost(Level);
+
+        if(G.main.Coins < cost)
+        {
+            BuyButton.enabled = false;
+            UpgradeCostT.color = Color.red;
+            ButtonBG.color = BuyButtonTint;
+            ButtonText.color = Color.grey;
+        }
+        else
+        {
+            BuyButton.enabled = true;
+            UpgradeCostT.color = Color.white;
+            ButtonBG.color = BuyButtonOriginalColor;
+            ButtonText.color = Color.white;
+        }
+    }
+    public void SetLevelAndCost(int level)
+    {
+        Level = level;
+        UpgradeNameT.text = FormatUpgradeName();
+        if(level >= MaxLevel)
+        {
+            BuyButton.gameObject.SetActive(false);
+            UpgradeCostT.text = "Max";
+            return;
+        }
+        var cost = Data.GetCost(level);
+        SetCost(cost);
+    }
+    public void SetCost(float cost)
+    {
+        string costText = G.ui.FormatString(cost);
+        UpgradeCostT.text = costText;
+    }
+    public string FormatUpgradeName()
+    {
+        var availableLevels = Data.GetAvaliableLevels();
+        if(Level == 0)
+        {
+            return Data.name;
+        }
+        else if(Level > availableLevels)
+        {
+            return $"{Data.name}";
+        }
+        else
+        {
+            return $"{Data.name} {Level}";
+        }
+    }
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        G.ui.HideUpgradeTooltip();
+    }
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        var availableLevels = Data.GetAvaliableLevels();
+
+        // penis
+        Debug.Log("-------");
+        Debug.Log($"Hovering over {Data.id}");
+        Debug.Log($"AvailableLevels: {availableLevels}, current level: {Level}");
+        Debug.Log("-------");
+
+        var tooltipPosition = eventData.position;
+        StationWindow.Station.ShowUpgradeTooltip(Data, Level, tooltipPosition);
+    }
+    public void TryBuy()
+    {
+        if(Level >= MaxLevel)
+            return;
+        StationWindow.TryBuyUpgrade(Data, Level, this);
+    }
+}
+
+
+
+
+--- Content of ./UI/BuyButton.cs ---
+
+using UnityEngine;
+
+public class BuyButton : MonoBehaviour
+{
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    void Start()
+    {
+        
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        
+    }
+}
+
+
+
+
+--- Content of ./UI/CameraSlider.cs ---
+
+using UnityEngine;
+using UnityEngine.UI;
+
+
+public class CameraSlider : MonoBehaviour
+{
+    public Camera Cam;
+    public Slider Slider;
+
+    // The top boundary wall transform - camera will stop before it becomes visible
+    public Transform TopWall;
+
+    private float _minY;   // starting camera Y (bottom bound)
+    private float _maxY;   // highest Y camera can reach before wall enters screen
+
+    void Start()
+    {
+        _minY = Cam.transform.position.y;
+
+        // Calculate how far up the camera can go before the wall enters view.
+        // orthographicSize is half the screen height in world units.
+        // So the top edge of the camera viewport is camY + orthographicSize.
+        // We want: camY + orthographicSize <= wallY
+        // Therefore: camY <= wallY - orthographicSize
+        _maxY = TopWall.position.y - Cam.orthographicSize;
+
+        // Clamp in case scene is set up so wall is already within starting view
+        _maxY = Mathf.Max(_maxY, _minY);
+
+        Slider.minValue = 0f;
+        Slider.maxValue = 1f;
+        Slider.value = 0f;
+
+        Slider.onValueChanged.AddListener(OnSliderChanged);
+    }
+
+    void OnDestroy()
+    {
+        Slider.onValueChanged.RemoveListener(OnSliderChanged);
+    }
+
+    void OnSliderChanged(float value)
+    {
+        var pos = Cam.transform.position;
+        pos.y = Mathf.Lerp(_minY, _maxY, value);
+        Cam.transform.position = pos;
+    }
+}
+
+
+
+--- Content of ./FireworkLauncher.cs ---
+
+using System;
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+public enum LauncherState
+{
+    Idle,
+    Startup,
+    Reload
+}
+
+public class FireworkLauncher : MonoBehaviour
+{
+    public Firework FireworkPfb;
+    public Transform FireworkLaunchAnchor;
+    public FireworkBox FireworkBox;
+
+
+    public TMP_Text CurrentDistanceT;
+    public TMP_Text CurrentSpeedT;
+    public TMP_Text CurrentAccelerationT;
+    public TMP_Text CurrentLifetimeT;
+
+
+    public LauncherState State = LauncherState.Idle;
+
+    public Firework CurrentChargedFirework;
+
+    public float StartupTimer;
+    public float ReloadTimer;
+
+    public void Init(FireworkBox box)
+    {
+        FireworkBox = box;
+
+        StartupTimer = box.LauncherStartupTimeSeconds;
+        StartupFirework();
+    }
+    void Start()
+    {
+
+    }
+    void Update()
+    {
+        if (State == LauncherState.Idle)
+            return;
+        if (State == LauncherState.Startup)
+        {
+            StartupTimer -= Time.deltaTime;
+            if(StartupTimer <= 0f)
+            {
+                StartupTimer = FireworkBox.LauncherStartupTimeSeconds;
+                ReloadTimer = FireworkBox.LauncherReloadTimeSeconds; 
+
+                State = LauncherState.Reload;
+
+                Debug.Log("Starting the firework!");
+                LaunchFirework(CurrentChargedFirework);
+            }
+        }
+        else
+        {
+            ReloadTimer -= Time.deltaTime;
+            if(ReloadTimer <= 0f)
+            {
+                StartupTimer = FireworkBox.LauncherStartupTimeSeconds;
+                StartupFirework();
+                State = LauncherState.Startup;
+            }
+        }
+    }
+
+    public void StartupFirework()
+    {
+        State = LauncherState.Startup;
+
+        var firework = Instantiate(FireworkPfb, FireworkLaunchAnchor.position, Quaternion.identity);
+        CurrentChargedFirework = firework;
+
+        firework.Init(FireworkBox, this);
+
+    }
+    public void LaunchFirework(Firework firework)
+    {
+        firework.Launch();
+        FireworkBox.AddFirework(firework);
+        CurrentChargedFirework = null;
+    }
+
+    // Will move this to box if I have time, this isn't really needed
+    public void EvaluateAndShowStats(Firework firework)
+    {
+        float overallDistanceMeters = (firework.transform.position.y - FireworkLaunchAnchor.position.y) * G.main.MetersPerUnit;
+        var distanceRounded = Math.Round(overallDistanceMeters, 2);
+        CurrentLifetimeT.text = $"{firework.Lifetime}s";
+        CurrentSpeedT.text = $"{firework.Speed}m/s";
+        CurrentAccelerationT.text = $"{firework.Acceleration}m2/s";
+        CurrentDistanceT.text = $"{distanceRounded}m";
+    }
+}
+
+
+
+
+--- Content of ./Firework.cs ---
+
+using Unity.Mathematics;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+public class Firework : MonoBehaviour
+{
+    public GameObject ExplosionParticles;
+    public GameObject FuseStartupParticles;
+    public GameObject TrailParticles;
+
+    public ParticleSystem CreatedTrailParticles;
+
+    public FireworkBox FireworkBox;
+    public FireworkLauncher Launcher;
+
+    public Transform FuseAnchor;
+
+    public float Lifetime;
+    public float InitialLifetime;
+
+    public Vector3 Direction = Vector3.up;
+    public Vector3 DirectionAtWobbleStart;
+
+    // flags
+    public bool Launched = false;
+    public bool IsAlive = true;
+    public bool YWobbleStarted = false;
+
+    // speed
+    public float Speed;
+    public float Acceleration;
+    public float Drag;
+
+
+    // Wobbling
+    public float FrequencyX;
+    public float PhaseX = 0f;
+    public float AmplitudeX = 1f;
+
+    public float FrequencyY;
+    public float PhaseY = 0f;
+    public float AmplitudeY = 1f;
+
+    public float TimeUntilYWobbleStartsSeconds; 
+    public float WobbleDelay;
+
+
+
+    void Start()
+    {
+        // puff particles and sound and tween
+    }
+
+    void Update()
+    {
+        if (!Launched)
+            return;
+        if(!IsAlive)
+            return;
+
+        if (Speed > 0)
+            Speed += Acceleration * Time.deltaTime;
+        
+        Speed = Mathf.Max(0f, Speed);
+
+        var elapsed = InitialLifetime - Lifetime;
+        if (TimeUntilYWobbleStartsSeconds <= 0 && !YWobbleStarted)
+        {
+            DirectionAtWobbleStart = Direction;
+            YWobbleStarted = true;
+        }
+
+        float sineOffsetX = 0f;
+        float sineOffsetY = 0f;
+
+        if (YWobbleStarted)
+        {
+            sineOffsetX = DirectionAtWobbleStart.x + Mathf.Sin(elapsed * FrequencyX + PhaseX) * AmplitudeX;
+            sineOffsetY = DirectionAtWobbleStart.y + Mathf.Sin(elapsed * FrequencyY + PhaseY) * AmplitudeY;
+        }
+        else
+        {
+            sineOffsetX = Mathf.Sin(elapsed * FrequencyX + PhaseX) * AmplitudeX;
+            sineOffsetY = 1f;
+        }
+
+        Direction = new Vector3(sineOffsetX, sineOffsetY, 0f).normalized;
+
+        transform.position += Direction * Speed / G.main.MetersPerUnit * Time.deltaTime;
+        transform.up = Direction;
+
+        Launcher.EvaluateAndShowStats(this);
+
+        if(Lifetime <= 0f)
+        {
+            AskForExplosion();
+            return;
+        }
+
+        Lifetime -= Time.deltaTime;
+        Acceleration -= Drag * Time.deltaTime;
+        TimeUntilYWobbleStartsSeconds -= Time.deltaTime;
+    }
+    void OnTriggerEnter2D(Collider2D collision)
+    {
+        if(collision.tag == "Firework")
+            return;
+        AskForExplosion();
+    }
+    public void AskForExplosion()
+    {
+        IsAlive = false;
+        FireworkBox.EvaluateExplosion(this);
+    }
+    public void Explode()
+    {
+        if (CreatedTrailParticles != null)
+        {
+            CreatedTrailParticles.transform.SetParent(null);
+            CreatedTrailParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            Destroy(CreatedTrailParticles.gameObject);
+        }
+        else
+        {
+            Debug.LogError("Null trail particle!");
+        }
+
+
+        var explosionParticles = Instantiate(ExplosionParticles, transform.position, Quaternion.identity);
+        AudioController.Instance.PlaySound3D("Explosion", transform.position);
+
+        Launcher = null;
+        FireworkBox = null;
+
+        Destroy(gameObject);
+    }
+    public void Launch()
+    {
+        Launched = true;
+        CreatedTrailParticles = Instantiate(TrailParticles, FuseAnchor).GetComponent<ParticleSystem>();
+        // Play some particles
+    }
+
+    public void Init(FireworkBox box, FireworkLauncher launcher)
+    {
+        FireworkBox = box;
+        Launcher = launcher;
+
+        //Lifetime = UnityEngine.Random.Range(launcher.MinLifetimeSeconds,
+        // launcher.MinLifetimeSeconds + launcher.UpperLifetimeVariationSeconds);A
+
+        Lifetime = box.FireworkLifetime;
+        InitialLifetime = Lifetime;
+
+        Speed = box.FireworkStartSpeed;
+        Acceleration = box.Acceleration;
+        Drag = box.Drag;
+
+        FrequencyX = box.FrequencyX;
+        FrequencyY = box.FrequencyY;
+
+        WobbleDelay = box.WobbleDelay;
+
+        PhaseX = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+        PhaseY = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+
+        TimeUntilYWobbleStartsSeconds = WobbleDelay;
+
+        // play some charging animation, like shake and add a continuous fushhh sound
+    }
+}
+
+
+
+
+--- Content of ./G.cs ---
+
+using UnityEngine;
+
+public static class G
+{
+    public static Main main;
+    public static UI ui;
+}
+
+
+
+
+--- Content of ./CMS.cs ---
+
+using System;
+using System.Collections.Generic;
+using Unity.VisualScripting.FullSerializer;
+using UnityEngine;
+
+
+public enum UpgradeType
+{
+    IncLifetime,
+    IncSpeed,
+    IncFireworkCount,
+    IncAcceleration,
+    DecDrag,
+    IncWobbleDelay,
+    DecWobbleFreqX,
+    DecWobbleFreqY,
+    IncCoinsPerMeter,
+    DecStartupTime,
+    DecReloadTime,
+    IncBoxesCount,
+    UnlockClicking,
+    UnlockTrajectory
+}
+
+public class UpgradeData
+{
+    public string id;
+    public string name;
+    public UpgradeType type;
+    public string soundUpgraded;
+
+    // (value, cost)
+    public List<(float v, float c)> incLifetime;
+    public List<(float v, float c)> incSpeed;
+    public List<(int v, float c)> incFireworkCount;
+    public List<(float v, float c)> incAcceleration;
+    public List<(float v, float c)> decDrag;
+    public List<(float v, float c)> incWobbleDelay;
+    public List<(float v, float c)> decWobbleFreqX;
+    public List<(float v, float c)> decWobbleFreqY;
+    public List<(float v, float c)> incCoinsPerMeter;
+    public List<(float v, float c)> decStartupTime;
+    public List<(float v, float c)> decReloadTime;
+    public List<(int v, float c)> incBoxesCount;
+
+    public bool UnlockClicking;
+    public bool UnlockTrajectory;
+
+    // thanks claude for the solution, very nice type matching
+    public float GetCost(int level)
+    {
+        return type switch
+        {
+            UpgradeType.IncLifetime => incLifetime[level].c,
+            UpgradeType.IncSpeed => incSpeed[level].c,
+            UpgradeType.IncFireworkCount => incFireworkCount[level].c,
+            UpgradeType.IncBoxesCount => incBoxesCount[level].c,
+            UpgradeType.IncCoinsPerMeter => incCoinsPerMeter[level].c,
+            UpgradeType.DecDrag => decDrag[level].c,
+            _ => throw new Exception($"Unhandled UpgradeType: {type}")
+        };
+    }
+    public int GetAvaliableLevels()
+    {
+        return type switch
+        {
+            UpgradeType.IncLifetime => incLifetime.Count,
+            UpgradeType.IncSpeed => incSpeed.Count,
+            UpgradeType.IncFireworkCount => incFireworkCount.Count,
+            UpgradeType.IncBoxesCount => incBoxesCount.Count,
+            UpgradeType.IncCoinsPerMeter => incCoinsPerMeter.Count,
+            UpgradeType.DecDrag => decDrag.Count,
+            _ => throw new Exception($"Unhandled UpgradeType: {type}")
+        };
+    }
+
+    // put this into the station
+    /*
+    public void Apply(int level)
+    {
+        switch (type)
+        {
+            case UpgradeType.IncLifetime: BaseValues.lifetime += incLifetime[level].v; break;
+            case UpgradeType.IncSpeed: BaseValues.startSpeed += incSpeed[level].v; break;
+            case UpgradeType.IncFireworkCount: BaseValues.fireworks += incFireworkCount[level].v; break;
+            case UpgradeType.IncBoxesCount: BaseValues.boxesCount += incBoxesCount[level].v; break;
+            case UpgradeType.IncCoinsPerMeter: BaseValues.coinsPerMeter += incCoinsPerMeter[level].v; break;
+            default: throw new Exception($"Unhandled UpgradeType: {type}");
+        }
+    }
+    */
+
+}
+
+public static class BaseValues
+{
+    public static string personName = "Tim Murray";
+    public static float coins = 0f;
+    public static float lifetime = 0.5f;
+    public static float startSpeed = 10f;
+    public static int maxLaunchers = 4;
+    public static int fireworks = 0;
+    public static float acceleration = 0f;
+    public static float drag = 0f;
+    public static float wobbleDelay = 0f;
+    public static float wobbleFreqX = 5f;
+    public static float wobbleFreqY = 0.5f;
+    public static float coinsPerMeter = 1;
+    public static float startupTime = 4f;
+    public static float reloadTime = 0.5f;
+    public static int boxesCount = 0;
+
+}
+public static class CMS
+{
+    public static bool Loaded = false;
+    public static List<UpgradeData> All;
+    public static List<(string stationId, List<(string tab, List<string> upgrades)> stationData)> StationsUpgrades;
+
+    public static void Load()
+    {
+        // maybe i should use some kind of curves or ask ai to generate values based on functions
+        All = new List<UpgradeData>()
+        {
+            new()
+            {
+                id = "lifetime",
+                name = "Firework Lifetime",
+                type = UpgradeType.IncLifetime,
+                incLifetime = new()
+                {
+                    (0.5f, 10f),
+                    (0.5f, 40f)
+                }
+            },
+            new()
+            {
+                id = "speed",
+                name = "Firework Speed",
+                type = UpgradeType.IncSpeed,
+                incSpeed = new()
+                {
+                    (5f, 5f),
+                    (5f, 100f)
+                }
+            },
+            new()
+            {
+                id = "fireworks",
+                name = "More fireworks",
+                type = UpgradeType.IncFireworkCount,
+                incFireworkCount = new()
+                {
+                    (1, 0f),
+                    (1, 200f),
+                    (1, 500f),
+                    (1, 900f)
+                }
+            },
+            new()
+            {
+                id = "boxes",
+                name = "More boxes",
+                type = UpgradeType.IncBoxesCount,
+                incBoxesCount = new()
+                {
+                    (1, 0f)
+                }
+            },
+            new()
+            {
+                id = "coins_per_meter",
+                name = "Coins Per Meter",
+                type = UpgradeType.IncCoinsPerMeter,
+                incCoinsPerMeter = new()
+                {
+                    (0.5f, 50f),
+                    (0.5f, 200f)
+                }
+            }
+        };
+        StationsUpgrades = new()
+        {
+            ("Firework Box", new()
+            {
+                ("Firework", new()
+                {
+                    "fireworks",
+                    "lifetime",
+                    "speed",
+                }
+                )
+            }
+            ),
+            ("Guy", new()
+            {
+                ("General", new()
+                {
+                    "coins_per_meter"
+                }
+                )
+            }
+            )
+        };
+        Loaded = true;
+    }
+
+    /*
+    public string GetDescription(string id)
+    {
+        // yeah not very useful, will make the descriptions inside the corresponding upgrade units like firework boxes
+        // i dont want to pass the current parameters or smth like that
+
+        var upgrade = All.Find(x => x.id == id);
+        if(upgrade == null)
+            Debug.LogError($"Upgrade with id: {id} does not exist");
+        string description = "";
+        switch (upgrade.id)
+        {
+            case "Velocity":
+                description = "";
+                break;
+        }
+        return description;
+    }
+    */
+}
+
+
+
+
+--- Content of ./Stations/FireworkBox.cs ---
+
+using System;
+using System.Collections.Generic;
+using Unity.Mathematics;
+using UnityEngine;
+
+public class FireworkBox : MonoBehaviour, IStation
+{
+    // Should I use windowGroup for that?
+    // Or maybe construct some type of generic station window view?
+
+    // Right now I should completely refactor the parameters out of firework and firework launcher
+    public SpriteRenderer Sprite;
+    public GameObject QuestionMark;
+
+    public FireworkLauncher LauncherPfb;
+
+    public float LauncherSpacingPixels = 16;
+
+
+    public int MaxLaunchers;
+
+    public float FireworkLifetime;
+
+    public float FireworkStartSpeed;
+    public float Acceleration;
+    public float Drag;
+
+    public float FrequencyX;
+    public float FrequencyY;
+
+    public float WobbleDelay;
+
+    public float LauncherReloadTimeSeconds;
+    public float LauncherStartupTimeSeconds;
+
+    public StationWindow StationWindow;
+
+    public List<FireworkLauncher> Launchers;
+    public List<Firework> ActiveFireworks;
+
+    public void EvaluateExplosion(Firework firework)
+    {
+        // change launcher anchor to ground anchor
+        var fireworkPosition = firework.transform.position;
+        float overallDistanceMeters = (firework.transform.position.y - G.main.RulerStartAnchor.position.y) * G.main.MetersPerUnit;
+        var distanceRounded = (float)Math.Round(overallDistanceMeters, 2);
+        ActiveFireworks.Remove(firework);
+
+        // may move explode here in case I want to apply effects and such
+        Debug.Log($"Firework flew for {firework.InitialLifetime}s");
+        firework.Explode();
+        G.main.EvaluateCoinsPerDistanceAndSpawnPopup(distanceRounded, this, fireworkPosition);
+    }
+    public void AddFirework(Firework firework)
+    {
+        ActiveFireworks.Add(firework);
+    }
+    public void AddLauncherAndStart()
+    {
+        if(Launchers.Count > MaxLaunchers)
+        {
+            Debug.LogError($"Cannot add more than {MaxLaunchers} launchers");
+            return;
+        }
+        // Move all launchers to the left because i have no idea how to add layouts
+        var launcherPosition = transform.position + ((float)LauncherSpacingPixels / G.main.PixelsPerUnit) * (Launchers.Count + 1) * Vector3.left;
+        var launcher = Instantiate(LauncherPfb, launcherPosition, quaternion.identity);
+        Launchers.Add(launcher);
+        launcher.Init(this);
+    }
+    public void ReceiveUpgrade(UpgradeData upgradeData, int level)
+    {
+        if (!StationWindow.IsStationUnlocked)
+        {
+            Debug.LogError("Station has not been unlocked");
+            return;
+        }
+        //Big switch case for every upgrade in the game
+        Debug.Log($"Buying upgrade {upgradeData.id} for {GetID()} with the level {level}");
+        switch (upgradeData.type)
+        {
+            case UpgradeType.IncLifetime:
+                FireworkLifetime += upgradeData.incLifetime[level].v;
+                break;
+            case UpgradeType.IncSpeed:
+                FireworkStartSpeed += upgradeData.incSpeed[level].v;
+                break;
+            case UpgradeType.IncFireworkCount:
+                AddLauncherAndStart();
+                break;
+            default:
+                Debug.LogError($"Upgrade {upgradeData.id} is not supported for station {GetID()}");
+                break;
+        }
+    }
+
+    public void ShowUpgradeTooltip(UpgradeData upgradeData, int level, Vector2 pointerPosition)
+    {
+        //UI.Tooltip.Show(etc)
+    }
+
+    public string GetID()
+    {
+        return "Firework Box";
+    }
+
+    public void Init(StationWindow window)
+    {
+        StationWindow = window;
+        MaxLaunchers = BaseValues.maxLaunchers;
+        FireworkLifetime = BaseValues.lifetime;
+        FireworkStartSpeed = BaseValues.startSpeed;
+        Acceleration = BaseValues.acceleration;
+        Drag = BaseValues.drag;
+        FrequencyX = BaseValues.wobbleFreqX;
+        FrequencyY = BaseValues.wobbleFreqY;
+        WobbleDelay = BaseValues.wobbleDelay;
+        LauncherReloadTimeSeconds = BaseValues.reloadTime;
+        LauncherStartupTimeSeconds = BaseValues.startupTime;
+    }
+
+    public void Unlock()
+    {
+        StationWindow.Unlock();
+        Sprite.color = Color.white;
+        // play puff animation or smth like that
+    }
+    public void Lock()
+    {
+        StationWindow.Lock();
+        Sprite.color = Color.red;
+    }
+
+    public void ShowUnlockAllert()
+    {
+        QuestionMark.SetActive(true);
+        Debug.Log("Alert shown");
+    }
+
+    public void HideUnlockAllert()
+    {
+        Debug.Log("Alert hidden");
+        QuestionMark.SetActive(false);
+    }
+
+    public Sprite GetIcon()
+    {
+        return GetComponentInChildren<SpriteRenderer>().sprite;
+    }
+    // Some real bullshitting is going to come soon oh boy... 00:11, time to sleep...
+    // I hope I will make it on time for the jam mode
+}
+
+
+
+
+--- Content of ./Stations/IStation.cs ---
+
+using UnityEngine;
+
+public interface IStation
+{
+    public string GetID();
+    public void ReceiveUpgrade(UpgradeData ugpradeData, int level);
+    public void ShowUpgradeTooltip(UpgradeData upgradeData, int level, Vector2 pointerPosition);
+    public void Init(StationWindow window);
+    public void ShowUnlockAllert();
+    public void HideUnlockAllert();
+    public void Lock();
+    public void Unlock();
+    public Sprite GetIcon();
+}
+
+
+
+
+--- Content of ./Stations/Guy.cs ---
+
+using UnityEngine;
+
+public class Guy : MonoBehaviour, IStation
+{
+    public GameObject QuestionMark;
+    public StationWindow StationWindow;
+    public SpriteRenderer Sprite;
+    public string GetID()
+    {
+        return "Guy";
+    }
+
+    public void Init(StationWindow window)
+    {
+        StationWindow = window;
+    }
+
+    public void ReceiveUpgrade(UpgradeData upgradeData, int level)
+    {
+        if (!StationWindow.IsStationUnlocked)
+        {
+            Debug.LogError("Station has not been unlocked");
+            return;
+        }
+        //Big switch case for every upgrade in the game
+        Debug.Log($"Buying upgrade {upgradeData.id} for {GetID()} with the level {level}");
+        switch (upgradeData.type)
+        {
+            case UpgradeType.IncCoinsPerMeter:
+                G.main.CoinsPerMeter += upgradeData.incCoinsPerMeter[level].v;
+                break;
+            default:
+                Debug.LogError($"Upgrade {upgradeData.id} is not supported for station {GetID()}");
+                break;
+        }
+    }
+    public void ShowUnlockAllert()
+    {
+        QuestionMark.SetActive(true);
+        Debug.Log("Alert shown");
+    }
+
+    public void HideUnlockAllert()
+    {
+        Debug.Log("Alert hidden");
+        QuestionMark.SetActive(false);
+    }
+    public void ShowUpgradeTooltip(UpgradeData upgradeData, int level, Vector2 pointerPosition)
+    {
+        Debug.Log($"Showing upgrade tooltip for {GetID()}");
+    }
+
+    void Start()
+    {
+        
+    }
+
+    void Update()
+    {
+        
+    }
+
+    public void Unlock()
+    {
+        StationWindow.Unlock();
+        Sprite.color = Color.white;
+        // play puff animation or smth like that
+    }
+    public void Lock()
+    {
+        StationWindow.Lock();
+        Sprite.color = Color.red;
+    }
+
+    public Sprite GetIcon()
+    {
+        return GetComponentInChildren<SpriteRenderer>().sprite;
+    }
+}
+
+
+
+
+--- Content of ./Utils/DebugManager.cs ---
+
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class DebugManager : MonoBehaviour
+{
+    public float CoinsIncrement = 100f;
+    void Start()
+    {
+        #if !UNITY_EDITOR_LINUX
+        gameObject.SetActive(false);
+        #endif
+    }
+
+    void Update()
+    {
+        if(Input.GetKeyDown(KeyCode.C))
+        {
+            G.main.ReceiveCoins(CoinsIncrement, Vector3.zero);
+        }
+        else if (Input.GetKeyDown(KeyCode.D))
+        {
+            G.main.ReceiveCoins(-CoinsIncrement, Vector3.zero);
+        }
+        else if (Input.GetKeyDown(KeyCode.R))
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+    }
+}
+
+
+

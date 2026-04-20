@@ -6,7 +6,7 @@ public class DebugManager : MonoBehaviour
     public float CoinsIncrement = 100f;
     void Start()
     {
-        #if !Unity_Editor
+        #if !UNITY_EDITOR_LINUX
         gameObject.SetActive(false);
         #endif
     }

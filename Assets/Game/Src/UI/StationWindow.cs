@@ -11,6 +11,9 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     // Upgrade view will be there too, I will maybe think about a more
     // interesting solution when im done with the gamejam
 
+    public RectTransform OffscreenIconParent;   // small icon RectTransform, center-anchored on the Canvas
+    public Image OffscreenIconImage;
+
     public TMP_Text Header;
 
     public TabGroup TopTabs;
@@ -34,11 +37,17 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     public IStation Station;
 
     public bool IsStationUnlocked = false;
+    public bool IsAlertShown = false;
 
     public void OnPointerEnter(PointerEventData eventData)
     {
         if(!IsStationUnlocked)
             return;
+        if (IsAlertShown)
+        {
+            IsAlertShown = false;
+            Station.HideUnlockAllert();
+        }
         View.SetActive(true);
         Hover.color = ActiveHoverAlphaColor;
     }
@@ -47,11 +56,13 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     {
         if(!IsStationUnlocked)
             return;
+
         View.SetActive(false);
         Hover.color = InactiveHoverAlphaColor;
     }
     public void Init(IStation station)
     {
+        OffscreenIconImage.sprite = station.GetIcon();
         UpgradeTab.StationWindow = this;
         Station = station;
 
@@ -94,6 +105,9 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     }
     public void Unlock()
     {
+        IsAlertShown = true;
+        Station.ShowUnlockAllert();
+
         if (IsStationUnlocked)
         {
             Debug.LogError("Station has already been unlocked");
@@ -104,13 +118,14 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     }
     public void Lock()
     {
+        IsAlertShown = false;
         IsStationUnlocked = false;
         gameObject.SetActive(false);
     }
     public void TryBuyUpgrade(UpgradeData data, int level, UpgradePanel panel)
     {
         var avaliableLevels = data.GetAvaliableLevels();
-        if(avaliableLevels < level)
+        if(avaliableLevels <= level)
         {
             Debug.Log($"Cannot buy upgrade with the name {data.name}, cannot increase past level {avaliableLevels}");
             return;
@@ -122,10 +137,12 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
             Debug.Log($"Current money {G.main.Coins}< cost {cost}");
             return;
         }
+        Station.ReceiveUpgrade(data, level);
+        G.main.SpendCoins(cost);
+        AudioController.Instance.PlaySound2D("Upgrade");
         level++;
         panel.SetLevelAndCost(level);
         panel.Refresh();
-        Station.ReceiveUpgrade(data, level);
     }
     public void UpdateAllTabs()
     {
@@ -133,5 +150,41 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         {
             panel.Refresh();
         }
+    }
+
+
+    public float EdgePaddingPixels = 0f;
+
+
+    void Update()
+    {
+        if (!IsStationUnlocked || OffscreenIconParent == null)
+            return;
+
+        // Station exposes its world position via its MonoBehaviour
+        Vector3 worldPos = ((MonoBehaviour)Station).transform.position;
+        Vector3 vp = Camera.main.WorldToViewportPoint(worldPos);
+
+        bool onScreen = vp.z > 0f
+                     && vp.x >= 0f && vp.x <= 1f
+                     && vp.y >= 0f && vp.y <= 1f;
+
+        if (onScreen)
+        {
+            OffscreenIconParent.gameObject.SetActive(false);
+            return;
+        }
+
+        OffscreenIconParent.gameObject.SetActive(true);
+
+        Vector2 size = G.ui.Root.GetComponent<RectTransform>().sizeDelta;
+        float halfH = size.y * 0.5f;
+
+        float canvasX = (vp.x - 0.5f) * size.x;
+        float canvasY = vp.y > 1f
+            ?  halfH - EdgePaddingPixels   // above screen → pin to top
+            : -halfH + EdgePaddingPixels;  // below screen → pin to bottom
+
+        //OffscreenIconParent.anchoredPosition = Hover.GetComponent<RectTransform>().anchoredPosition;
     }
 }

@@ -336,7 +336,7 @@ public class AudioController : MonoBehaviour
     {
         loopSources[sourceIndex].Stop();
         loopSources[sourceIndex].time = 0f;
-        loopSources[sourceIndex].volume = 1f;
+        //loopSources[sourceIndex].volume = 1f;
         loopSources[sourceIndex].pitch = 1f;
         loopSources[sourceIndex].Play();
     }

@@ -15,10 +15,15 @@ public class TextPopup : MonoBehaviour
     void Update()
     {
     }
-    public void Set(string text)
+    public void Set(string text, float localX)
     {
         //6f / G.main.PixelsPerUnit
         Text.text = text;
-        GetComponent<RectTransform>().DOLocalMoveY(2f / G.main.PixelsPerUnit, 1f, true).SetEase(Ease.OutCubic).OnComplete(()=>Destroy(gameObject));
+        var rect = GetComponent<RectTransform>();
+
+        float xNudge = 2f / G.main.PixelsPerUnit;
+        float xDir = localX > 0 ? -xNudge :xNudge;
+        rect.DOLocalMoveY(2f / G.main.PixelsPerUnit, 1f, true).SetEase(Ease.OutCubic).OnComplete(() => Destroy(gameObject));
+        rect.DOLocalMoveX(xDir, 1f, true).SetEase(Ease.OutCubic);
     }
 }

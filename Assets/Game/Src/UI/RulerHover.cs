@@ -5,14 +5,14 @@ public class RulerHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
 {
     public void OnPointerEnter(PointerEventData eventData)
     {
-        G.main.ShowRuler();
-        Debug.Log("Showing ruler");
+        //G.main.ShowRuler();
+        //Debug.Log("Showing ruler");
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        G.main.HideRuler();
-        Debug.Log("Hiding ruler");
+        //G.main.HideRuler();
+        //Debug.Log("Hiding ruler");
     }
 
     void Start()

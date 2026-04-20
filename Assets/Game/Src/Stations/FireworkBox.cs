@@ -9,11 +9,13 @@ public class FireworkBox : MonoBehaviour, IStation
     // Or maybe construct some type of generic station window view?
 
     // Right now I should completely refactor the parameters out of firework and firework launcher
+    public SpriteRenderer Sprite;
+    public GameObject QuestionMark;
+
     public FireworkLauncher LauncherPfb;
 
     public float LauncherSpacingPixels = 16;
 
-    public SpriteRenderer Sprite;
 
     public int MaxLaunchers;
 
@@ -75,6 +77,21 @@ public class FireworkBox : MonoBehaviour, IStation
         }
         //Big switch case for every upgrade in the game
         Debug.Log($"Buying upgrade {upgradeData.id} for {GetID()} with the level {level}");
+        switch (upgradeData.type)
+        {
+            case UpgradeType.IncLifetime:
+                FireworkLifetime += upgradeData.incLifetime[level].v;
+                break;
+            case UpgradeType.IncSpeed:
+                FireworkStartSpeed += upgradeData.incSpeed[level].v;
+                break;
+            case UpgradeType.IncFireworkCount:
+                AddLauncherAndStart();
+                break;
+            default:
+                Debug.LogError($"Upgrade {upgradeData.id} is not supported for station {GetID()}");
+                break;
+        }
     }
 
     public void ShowUpgradeTooltip(UpgradeData upgradeData, int level, Vector2 pointerPosition)
@@ -112,6 +129,23 @@ public class FireworkBox : MonoBehaviour, IStation
     {
         StationWindow.Lock();
         Sprite.color = Color.red;
+    }
+
+    public void ShowUnlockAllert()
+    {
+        QuestionMark.SetActive(true);
+        Debug.Log("Alert shown");
+    }
+
+    public void HideUnlockAllert()
+    {
+        Debug.Log("Alert hidden");
+        QuestionMark.SetActive(false);
+    }
+
+    public Sprite GetIcon()
+    {
+        return GetComponentInChildren<SpriteRenderer>().sprite;
     }
     // Some real bullshitting is going to come soon oh boy... 00:11, time to sleep...
     // I hope I will make it on time for the jam mode

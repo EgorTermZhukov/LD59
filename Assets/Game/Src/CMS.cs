@@ -27,6 +27,7 @@ public class UpgradeData
     public string id;
     public string name;
     public UpgradeType type;
+    public string soundUpgraded;
 
     // (value, cost)
     public List<(float v, float c)> incLifetime;
@@ -128,10 +129,8 @@ public static class CMS
                 type = UpgradeType.IncLifetime,
                 incLifetime = new()
                 {
-                    (0.2f, 10f),
-                    (0.2f, 40f),
-                    (0.2f, 100f),
-                    (0.2f, 145f)
+                    (0.5f, 10f),
+                    (0.5f, 40f)
                 }
             },
             new()
@@ -141,8 +140,8 @@ public static class CMS
                 type = UpgradeType.IncSpeed,
                 incSpeed = new()
                 {
-                    (1f, 5f),
-                    (2f, 10f)
+                    (5f, 5f),
+                    (5f, 100f)
                 }
             },
             new()
@@ -171,7 +170,7 @@ public static class CMS
             new()
             {
                 id = "coins_per_meter",
-                name = "More Coins Per Meter",
+                name = "Coins Per Meter",
                 type = UpgradeType.IncCoinsPerMeter,
                 incCoinsPerMeter = new()
                 {
@@ -186,9 +185,9 @@ public static class CMS
             {
                 ("Firework", new()
                 {
+                    "fireworks",
                     "lifetime",
                     "speed",
-                    "fireworks"
                 }
                 )
             }
@@ -197,8 +196,7 @@ public static class CMS
             {
                 ("General", new()
                 {
-                    "boxes",
-                    "coins_per_Meter"
+                    "coins_per_meter"
                 }
                 )
             }
