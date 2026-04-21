@@ -57,6 +57,7 @@ public class UpgradeData
             UpgradeType.IncBoxesCount => incBoxesCount[level].c,
             UpgradeType.IncCoinsPerMeter => incCoinsPerMeter[level].c,
             UpgradeType.DecDrag => decDrag[level].c,
+            UpgradeType.DecStartupTime => decStartupTime[level].c,
             _ => throw new Exception($"Unhandled UpgradeType: {type}")
         };
     }
@@ -70,6 +71,7 @@ public class UpgradeData
             UpgradeType.IncBoxesCount => incBoxesCount.Count,
             UpgradeType.IncCoinsPerMeter => incCoinsPerMeter.Count,
             UpgradeType.DecDrag => decDrag.Count,
+            UpgradeType.DecStartupTime => decStartupTime.Count,
             _ => throw new Exception($"Unhandled UpgradeType: {type}")
         };
     }
@@ -95,10 +97,11 @@ public class UpgradeData
 public static class BaseValues
 {
     public static string personName = "Tim Murray";
+    public static float winCondition = 5000;
     public static float coins = 0f;
     public static float lifetime = 0.5f;
     public static float startSpeed = 10f;
-    public static int maxLaunchers = 4;
+    public static int maxLaunchers = 6;
     public static int fireworks = 0;
     public static float acceleration = 0f;
     public static float drag = 0f;
@@ -106,8 +109,8 @@ public static class BaseValues
     public static float wobbleFreqX = 5f;
     public static float wobbleFreqY = 0.5f;
     public static float coinsPerMeter = 1;
-    public static float startupTime = 4f;
-    public static float reloadTime = 0.5f;
+    public static float startupTime = 2f;
+    public static float reloadTime = 1f;
     public static int boxesCount = 0;
 
 }
@@ -130,7 +133,22 @@ public static class CMS
                 incLifetime = new()
                 {
                     (0.5f, 10f),
-                    (0.5f, 40f)
+                    (0.5f, 40f),
+                    (1f, 200f),
+                    (1f, 350f)
+                }
+            },
+            new()
+            {
+                id = "startup_time",
+                name = "Faster startup",
+                type = UpgradeType.DecStartupTime,
+                decStartupTime = new()
+                {
+                    (0.5f, 100f),
+                    (0.5f, 250f),
+                    (0.5f, 450f),
+                    (0.5f, 1200f)
                 }
             },
             new()
@@ -141,7 +159,10 @@ public static class CMS
                 incSpeed = new()
                 {
                     (5f, 5f),
-                    (5f, 100f)
+                    (5f, 100f),
+                    (5f, 250f),
+                    (5f, 500f),
+                    (10, 1000f)
                 }
             },
             new()
@@ -154,7 +175,9 @@ public static class CMS
                     (1, 0f),
                     (1, 200f),
                     (1, 500f),
-                    (1, 900f)
+                    (1, 900f),
+                    (1, 1200f),
+                    (1, 1800f)
                 }
             },
             new()
@@ -175,7 +198,8 @@ public static class CMS
                 incCoinsPerMeter = new()
                 {
                     (0.5f, 50f),
-                    (0.5f, 200f)
+                    (0.5f, 200f),
+                    (1f, 500f)
                 }
             }
         };
@@ -188,6 +212,7 @@ public static class CMS
                     "fireworks",
                     "lifetime",
                     "speed",
+                    "startup_time"
                 }
                 )
             }

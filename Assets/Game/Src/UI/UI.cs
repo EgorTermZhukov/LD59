@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
@@ -16,16 +17,35 @@ public class UI : MonoBehaviour
     public Canvas Root;
     public CoinsDisplay CoinsDisplay;
 
+
     public TextPopup CoinPopup;
 
     public StationWindow StationWindowPfb;
 
     public Canvas WindowCanvas;
+    public Canvas DisplayCanvas;
+    public Canvas EndScreen;
+
     public List<StationWindow> StationWindows;
+
+    public GameObject InputBoxParent;
+    public TMP_InputField InputField;
+
+    public bool PersonNameHasBeenSelected = false;
+
+    public ProgressBar ProgressBar;
+
+    public TMP_Text WinConditionText;
+    public TMP_Text PersonNameText;
+
 
     void Awake()
     {
         G.ui = this;
+    }
+    void Start()
+    {
+        WinConditionText.text = FormatString(BaseValues.winCondition);
     }
     public void UpdateCoins(float coins)
     {
@@ -36,6 +56,7 @@ public class UI : MonoBehaviour
         {
             window.UpdateAllTabs();
         }
+        ProgressBar.SetValue(coins/BaseValues.winCondition, true);
     }
 
     void Update()
@@ -90,7 +111,13 @@ public class UI : MonoBehaviour
 
     public void HideHUD()
     {
-        CoinsDisplay.gameObject.SetActive(false);
+        DisplayCanvas.gameObject.SetActive(false);
+        WindowCanvas.gameObject.SetActive(false);
+    }
+    public void ShowHUD()
+    {
+        DisplayCanvas.gameObject.SetActive(true);
+        WindowCanvas.gameObject.SetActive(true);
     }
     public void ShowFade()
     {
@@ -102,6 +129,39 @@ public class UI : MonoBehaviour
     }
     public void FadeOut()
     {
-        Fader.DOFade(0f, 0.5f);
+        Fader.DOFade(0f, 0.5f).OnComplete(()=> Fader.gameObject.SetActive(false));
+    }
+
+    public void ShowInputBox()
+    {
+        InputBoxParent.SetActive(true);
+    }
+
+    public void HideInputBox()
+    {
+        InputBoxParent.SetActive(false);
+    }
+    public IEnumerator AskForPersonName()
+    {
+        InputField.ActivateInputField();
+        while (PersonNameHasBeenSelected == false)
+        {
+            yield return null;
+        }
+    }
+    public void SetName(string name)
+    {
+        PersonNameHasBeenSelected = true;
+    }
+    public IEnumerator DisplayEndscreen()
+    {
+        PersonNameText.text = G.main.PersonsName;
+        Debug.Log($"Persons name: {G.main.PersonsName}");
+        foreach(var text in EndScreen.gameObject.GetComponentsInChildren<TMP_Text>())
+        {
+            text.DOFade(1f, 2f);
+            yield return new WaitForSeconds(2f);
+        }
+        yield break;
     }
 }

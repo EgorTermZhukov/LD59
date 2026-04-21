@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using DG.Tweening;
 using JetBrains.Annotations;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 
 
@@ -17,6 +18,8 @@ public class FireworkState
 
 public class Main : MonoBehaviour
 {
+
+    public ParticleSystem EndscreenParticles;
     private static WaitForSeconds _waitForSeconds1 = new WaitForSeconds(1f);
     public int PixelsPerUnit = 16;
     public int PixelsPerMeter = 64;
@@ -52,6 +55,7 @@ public class Main : MonoBehaviour
     public List<Transform> BoxesPositions;
 
     public bool FirstFireworkExploded = false;
+    public bool GameWon = false;
 
     void Awake()
     {
@@ -59,11 +63,12 @@ public class Main : MonoBehaviour
         CMS.Load();
         Coins = BaseValues.coins;
         CoinsPerMeter = BaseValues.coinsPerMeter;
-        G.ui.HideHUD();
     }
     IEnumerator Start()
     {
+        G.ui.HideHUD();
         MetersPerUnit = (float)PixelsPerUnit / PixelsPerMeter;
+        Coins = BaseValues.coins;
         Debug.Log($"Meter size: {MetersPerUnit} per unit");
 
         RulerNotches = new List<GameObject>();
@@ -83,12 +88,25 @@ public class Main : MonoBehaviour
         }
         HideRuler();
 
-        Coins = 0;
+        Coins = BaseValues.coins;
         G.ui.UpdateCoins(Coins);
+
+        G.ui.ShowFade();
+        G.ui.ShowInputBox();
+
+        yield return G.ui.AskForPersonName();
+
 
         StartCoroutine(CreateBoxesAndCreateWindows());
         StartCoroutine(CreateGuyAndCreateWindow());
+
         AudioController.Instance.SetLoopAndPlay("Wind");
+
+        G.ui.FadeOut();
+        G.ui.HideInputBox();
+
+        G.ui.ShowHUD();
+        EndscreenParticles.Play();
         yield break;
         //StartCoroutine(CreateLauncher());
     }
@@ -140,6 +158,12 @@ public class Main : MonoBehaviour
         Coins = (float)Math.Round(Coins, 1);
         G.ui.SpawnPopup($"+ {G.ui.FormatString(coinsToReceive)}", PopupType.Coin, popupPosition);
         G.ui.UpdateCoins(Coins);
+        if(Coins >= BaseValues.winCondition && !GameWon)
+        {
+            GameWon = true;
+            G.ui.HideHUD();
+            StartCoroutine(PlayWinCondition());
+        }
     }
     public void SpendCoins(float coinsToSpend)
     {
@@ -173,6 +197,12 @@ public class Main : MonoBehaviour
             box.Unlock();
             //box.AddLauncherAndStart();
         }
+        yield break;
+    }
+    public IEnumerator PlayWinCondition()
+    {
+        AudioController.Instance.SetLoopAndPlay("WetFroggo", 1);
+        yield return G.ui.DisplayEndscreen();
         yield break;
     }
     /*

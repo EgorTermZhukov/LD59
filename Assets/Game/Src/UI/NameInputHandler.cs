@@ -21,6 +21,6 @@ public class NameInputHandler : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(name))
             return;
-        Generator.Capture(name);
+        G.main.PersonsName = name;
     }
 }

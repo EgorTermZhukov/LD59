@@ -17,7 +17,7 @@ public class NameTextureGenerator : MonoBehaviour
     // Increase if particles appear in the background, decrease if letters look sparse
     public float AlphaThreshold = 0.5f;
 
-    private Texture2D _capturedTexture;
+    public Texture2D CapturedTexture;
 
     public void Capture(string name)
     {
@@ -35,21 +35,18 @@ public class NameTextureGenerator : MonoBehaviour
     {
         yield return new WaitForEndOfFrame();
 
-        if (_capturedTexture != null)
-            Destroy(_capturedTexture);
-
-        _capturedTexture = new Texture2D(RenderTex.width, RenderTex.height, TextureFormat.RGBA32, false);
+        CapturedTexture = new Texture2D(RenderTex.width, RenderTex.height, TextureFormat.RGBA32, false);
 
         RenderTexture previouslyActive = RenderTexture.active;
         RenderTexture.active = RenderTex;
-        _capturedTexture.ReadPixels(new Rect(0, 0, RenderTex.width, RenderTex.height), 0, 0);
-        _capturedTexture.Apply();
+        CapturedTexture.ReadPixels(new Rect(0, 0, RenderTex.width, RenderTex.height), 0, 0);
+        CapturedTexture.Apply();
         RenderTexture.active = previouslyActive;
 
         // Apply texture as a mask onto the shape — no shapeType change needed
         var shape = NameParticles.shape;
         shape.enabled = true;
-        shape.texture = _capturedTexture;
+        shape.texture = CapturedTexture;
         shape.textureAlphaAffectsParticles = true;
         shape.textureClipChannel = ParticleSystemShapeTextureChannel.Alpha;
         shape.textureClipThreshold = AlphaThreshold;
@@ -59,7 +56,7 @@ public class NameTextureGenerator : MonoBehaviour
 
     void OnDestroy()
     {
-        if (_capturedTexture != null)
-            Destroy(_capturedTexture);
+        if (CapturedTexture != null)
+            Destroy(CapturedTexture);
     }
 }

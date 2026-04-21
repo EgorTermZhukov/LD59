@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: b04be95e0155e7c1ea0575082aac3343
+guid: 1e3bd224bf676a9348b82144bdce44d5
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 5980497230160867920
-    second: BigFirework_0
+      213: -5356574185940491189
+    second: Wall_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -46,7 +46,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 0
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: BigFirework_0
+      name: Wall_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 31
-        height: 32
+        width: 481
+        height: 39
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 05232f77b8efef250800000000000000
-      internalID: 5980497230160867920
+      spriteID: b446df18820a9a5b0800000000000000
+      internalID: -5356574185940491189
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      BigFirework_0: 5980497230160867920
+      Wall_0: -5356574185940491189
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
