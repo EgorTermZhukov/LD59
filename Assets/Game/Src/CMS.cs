@@ -100,7 +100,7 @@ public static class BaseValues
     public static float winCondition = 5000;
     public static float coins = 0f;
     public static float lifetime = 0.5f;
-    public static float startSpeed = 10f;
+    public static float startSpeed = 6f;
     public static int maxLaunchers = 6;
     public static int fireworks = 0;
     public static float acceleration = 0f;
@@ -108,8 +108,8 @@ public static class BaseValues
     public static float wobbleDelay = 0f;
     public static float wobbleFreqX = 5f;
     public static float wobbleFreqY = 0.5f;
-    public static float coinsPerMeter = 1;
-    public static float startupTime = 2f;
+    public static float coinsPerMeter = 1f;
+    public static float startupTime = 4f;
     public static float reloadTime = 1f;
     public static int boxesCount = 0;
 
@@ -132,10 +132,10 @@ public static class CMS
                 type = UpgradeType.IncLifetime,
                 incLifetime = new()
                 {
-                    (0.5f, 10f),
-                    (0.5f, 40f),
-                    (1f, 200f),
-                    (1f, 350f)
+                    (0.1f, 10f),
+                    (0.1f, 40f),
+                    (0.1f, 60f),
+                    (0.1f, 100f)
                 }
             },
             new()
@@ -145,10 +145,12 @@ public static class CMS
                 type = UpgradeType.DecStartupTime,
                 decStartupTime = new()
                 {
-                    (0.5f, 100f),
+                    (0.25f, 20f),
+                    (0.25f, 50f),
                     (0.5f, 250f),
-                    (0.5f, 450f),
-                    (0.5f, 1200f)
+                    (0.5f, 400f),
+                    (0.5f, 700f),
+                    (0.5f, 1000f)
                 }
             },
             new()
@@ -159,10 +161,11 @@ public static class CMS
                 incSpeed = new()
                 {
                     (5f, 5f),
+                    (5f, 20f),
+                    (5f, 40f),
                     (5f, 100f),
-                    (5f, 250f),
-                    (5f, 500f),
-                    (10, 1000f)
+                    (5f, 400f),
+                    (5f, 1200f)
                 }
             },
             new()
@@ -173,7 +176,7 @@ public static class CMS
                 incFireworkCount = new()
                 {
                     (1, 0f),
-                    (1, 200f),
+                    (1, 50f),
                     (1, 500f),
                     (1, 900f),
                     (1, 1200f),
@@ -198,8 +201,9 @@ public static class CMS
                 incCoinsPerMeter = new()
                 {
                     (0.5f, 50f),
-                    (0.5f, 200f),
-                    (1f, 500f)
+                    (0.5f, 250f),
+                    (0.5f, 500f),
+                    (0.5f, 1200f)
                 }
             }
         };

@@ -29,6 +29,7 @@ public class Main : MonoBehaviour
     public float CoinsPerMeter;
 
     public string PersonsName;
+    public bool ShowTextInput;
     public float Coins = 0;
 
 
@@ -39,7 +40,7 @@ public class Main : MonoBehaviour
     public Guy GuyPfb;
 
 
-    public float TravelledMeters;
+    public float MaxDistance;
 
 
     public Transform RulerStartAnchor;
@@ -62,6 +63,7 @@ public class Main : MonoBehaviour
         G.main = this;
         CMS.Load();
         Coins = BaseValues.coins;
+        MaxDistance = 0f;
         CoinsPerMeter = BaseValues.coinsPerMeter;
     }
     IEnumerator Start()
@@ -92,9 +94,11 @@ public class Main : MonoBehaviour
         G.ui.UpdateCoins(Coins);
 
         G.ui.ShowFade();
-        G.ui.ShowInputBox();
-
-        yield return G.ui.AskForPersonName();
+        if (ShowTextInput)
+        {
+            G.ui.ShowInputBox();
+            yield return G.ui.AskForPersonName();
+        }
 
 
         StartCoroutine(CreateBoxesAndCreateWindows());
@@ -133,18 +137,27 @@ public class Main : MonoBehaviour
     }
 
     // Reference firework box
-    public void EvaluateCoinsPerDistanceAndSpawnPopup(float overallDistanceMeters, FireworkBox fireworkBox, Vector3 popupPosition)
+    public void EvaluateCoinsPerDistanceAndSpawnPopup(float overallDistanceMeters, FireworkBox fireworkBox, Vector3 fireworkPosition)
     {
         // this should be evaluated in fireworkbox
         // oh wait no, nvm, coins per meter is a char upgrade
+        // calculate distance there instead of firework
 
-        float coinsGained = overallDistanceMeters * CoinsPerMeter;
-        float coinsGainedRound = (float)Math.Round((double)coinsGained, 1); 
-        Debug.Log($"Distance travelled: {overallDistanceMeters}m");
+        var distanceRounded = (float)Math.Round(overallDistanceMeters);
+        if(distanceRounded > MaxDistance)
+        {
+            MaxDistance = overallDistanceMeters;
+            G.ui.UpdateMaxDistance(MaxDistance, fireworkPosition);
+        }
+
+        float coinsGained = distanceRounded * CoinsPerMeter;
+        Debug.Log($"Distance travelled: {distanceRounded}m");
         Debug.Log($"Gained: {coinsGained} coins");
 
-        float coinsToReceive = (float)Math.Round((double)coinsGained, 1);
-        ReceiveCoins(coinsToReceive, popupPosition);
+        G.ui.SpawnCoinPopup($"+ {G.ui.FormatString(coinsGained)}", fireworkPosition);
+
+        ReceiveCoins(coinsGained);
+
 
         if (!FirstFireworkExploded)
         {
@@ -152,11 +165,10 @@ public class Main : MonoBehaviour
             AudioController.Instance.SetLoopAndPlay("Piano", 1);
         }
     }
-    public void ReceiveCoins(float coinsToReceive, Vector3 popupPosition)
+    public void ReceiveCoins(float coinsToReceive)
     {
         Coins += coinsToReceive;
         Coins = (float)Math.Round(Coins, 1);
-        G.ui.SpawnPopup($"+ {G.ui.FormatString(coinsToReceive)}", PopupType.Coin, popupPosition);
         G.ui.UpdateCoins(Coins);
         if(Coins >= BaseValues.winCondition && !GameWon)
         {

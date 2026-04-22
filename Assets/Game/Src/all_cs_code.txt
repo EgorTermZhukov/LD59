@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using DG.Tweening;
 using JetBrains.Annotations;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 
 
@@ -20,6 +21,8 @@ public class FireworkState
 
 public class Main : MonoBehaviour
 {
+
+    public ParticleSystem EndscreenParticles;
     private static WaitForSeconds _waitForSeconds1 = new WaitForSeconds(1f);
     public int PixelsPerUnit = 16;
     public int PixelsPerMeter = 64;
@@ -39,7 +42,7 @@ public class Main : MonoBehaviour
     public Guy GuyPfb;
 
 
-    public float TravelledMeters;
+    public float MaxDistance;
 
 
     public Transform RulerStartAnchor;
@@ -55,17 +58,21 @@ public class Main : MonoBehaviour
     public List<Transform> BoxesPositions;
 
     public bool FirstFireworkExploded = false;
+    public bool GameWon = false;
 
     void Awake()
     {
         G.main = this;
         CMS.Load();
         Coins = BaseValues.coins;
+        MaxDistance = 0f;
         CoinsPerMeter = BaseValues.coinsPerMeter;
     }
-    void Start()
+    IEnumerator Start()
     {
+        G.ui.HideHUD();
         MetersPerUnit = (float)PixelsPerUnit / PixelsPerMeter;
+        Coins = BaseValues.coins;
         Debug.Log($"Meter size: {MetersPerUnit} per unit");
 
         RulerNotches = new List<GameObject>();
@@ -85,13 +92,26 @@ public class Main : MonoBehaviour
         }
         HideRuler();
 
-        Coins = 0;
+        Coins = BaseValues.coins;
         G.ui.UpdateCoins(Coins);
+
+        G.ui.ShowFade();
+        G.ui.ShowInputBox();
+
+        yield return G.ui.AskForPersonName();
+
 
         StartCoroutine(CreateBoxesAndCreateWindows());
         StartCoroutine(CreateGuyAndCreateWindow());
+
         AudioController.Instance.SetLoopAndPlay("Wind");
 
+        G.ui.FadeOut();
+        G.ui.HideInputBox();
+
+        G.ui.ShowHUD();
+        EndscreenParticles.Play();
+        yield break;
         //StartCoroutine(CreateLauncher());
     }
     public void SetPersonsName(string name)
@@ -121,14 +141,23 @@ public class Main : MonoBehaviour
     {
         // this should be evaluated in fireworkbox
         // oh wait no, nvm, coins per meter is a char upgrade
+        // calculate distance there instead of firework
 
-        float coinsGained = overallDistanceMeters * CoinsPerMeter;
-        float coinsGainedRound = (float)Math.Round((double)coinsGained, 1); 
-        Debug.Log($"Distance travelled: {overallDistanceMeters}m");
+        var distanceRounded = (float)Math.Round(overallDistanceMeters);
+        if(distanceRounded > MaxDistance)
+        {
+            MaxDistance = overallDistanceMeters;
+            G.ui.UpdateMaxDistance(MaxDistance, popupPosition);
+        }
+
+        float coinsGained = distanceRounded * CoinsPerMeter;
+        Debug.Log($"Distance travelled: {distanceRounded}m");
         Debug.Log($"Gained: {coinsGained} coins");
 
-        float coinsToReceive = (float)Math.Round((double)coinsGained, 1);
-        ReceiveCoins(coinsToReceive, popupPosition);
+        G.ui.SpawnPopup($"+ {G.ui.FormatString(coinsGained)}", PopupType.Coin, popupPosition);
+
+        ReceiveCoins(coinsGained);
+
 
         if (!FirstFireworkExploded)
         {
@@ -136,12 +165,17 @@ public class Main : MonoBehaviour
             AudioController.Instance.SetLoopAndPlay("Piano", 1);
         }
     }
-    public void ReceiveCoins(float coinsToReceive, Vector3 popupPosition)
+    public void ReceiveCoins(float coinsToReceive)
     {
         Coins += coinsToReceive;
         Coins = (float)Math.Round(Coins, 1);
-        G.ui.SpawnPopup($"+ {G.ui.FormatString(coinsToReceive)}", PopupType.Coin, popupPosition);
         G.ui.UpdateCoins(Coins);
+        if(Coins >= BaseValues.winCondition && !GameWon)
+        {
+            GameWon = true;
+            G.ui.HideHUD();
+            StartCoroutine(PlayWinCondition());
+        }
     }
     public void SpendCoins(float coinsToSpend)
     {
@@ -175,6 +209,12 @@ public class Main : MonoBehaviour
             box.Unlock();
             //box.AddLauncherAndStart();
         }
+        yield break;
+    }
+    public IEnumerator PlayWinCondition()
+    {
+        AudioController.Instance.SetLoopAndPlay("WetFroggo", 1);
+        yield return G.ui.DisplayEndscreen();
         yield break;
     }
     /*
@@ -338,10 +378,12 @@ public class TabGroup : MonoBehaviour
 --- Content of ./UI/UI.cs ---
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
-using Mono.Cecil.Cil;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 
 public enum PopupType
@@ -350,18 +392,40 @@ public enum PopupType
 }
 public class UI : MonoBehaviour
 {
+    public Image Fader;
     public Canvas Root;
     public CoinsDisplay CoinsDisplay;
+    public TMP_Text DistanceDisplay;
+
 
     public TextPopup CoinPopup;
 
     public StationWindow StationWindowPfb;
 
     public Canvas WindowCanvas;
+    public Canvas DisplayCanvas;
+    public Canvas EndScreen;
+
     public List<StationWindow> StationWindows;
+
+    public GameObject InputBoxParent;
+    public TMP_InputField InputField;
+
+    public bool PersonNameHasBeenSelected = false;
+
+    public ProgressBar ProgressBar;
+
+    public TMP_Text WinConditionText;
+    public TMP_Text PersonNameText;
+
+
     void Awake()
     {
         G.ui = this;
+    }
+    void Start()
+    {
+        WinConditionText.text = FormatString(BaseValues.winCondition);
     }
     public void UpdateCoins(float coins)
     {
@@ -372,6 +436,13 @@ public class UI : MonoBehaviour
         {
             window.UpdateAllTabs();
         }
+        ProgressBar.SetValue(coins/BaseValues.winCondition, true);
+    }
+    public void UpdateMaxDistance(float maxDistance, Vector3 popupPosition)
+    {
+        if(G.main.FirstFireworkExploded)
+            AudioController.Instance.PlaySound2D("MaxDistance");
+        DistanceDisplay.text = maxDistance + "m";
     }
 
     void Update()
@@ -399,7 +470,7 @@ public class UI : MonoBehaviour
             RectTransformUtility.ScreenPointToLocalPointInRectangle(Root.GetComponent<RectTransform>(), screenPoint, null, out localPoint);
 
         popup.GetComponent<RectTransform>().anchoredPosition = localPoint;
-        popup.Set(text, localPoint.x);
+        popup.SetAndFlyToTheCenter(text, localPoint.x);
     }
     public StationWindow CreateStationWindowAndHide(IStation station, Vector3 worldPosition)
     {
@@ -411,7 +482,7 @@ public class UI : MonoBehaviour
         else
             RectTransformUtility.ScreenPointToLocalPointInRectangle(Root.GetComponent<RectTransform>(), screenPoint, null, out localPoint);
         window.GetComponent<RectTransform>().anchoredPosition = localPoint;
-        window.Init(station, station.GetIcon());
+        window.Init(station);
         window.gameObject.SetActive(false);
         window.SetHeader(station.GetID());
         StationWindows.Add(window);
@@ -422,6 +493,62 @@ public class UI : MonoBehaviour
     }
     public void ShowUpgradeTooltip(string formattedStringToShow)
     {
+    }
+
+    public void HideHUD()
+    {
+        DisplayCanvas.gameObject.SetActive(false);
+        WindowCanvas.gameObject.SetActive(false);
+    }
+    public void ShowHUD()
+    {
+        DisplayCanvas.gameObject.SetActive(true);
+        WindowCanvas.gameObject.SetActive(true);
+    }
+    public void ShowFade()
+    {
+        Fader.gameObject.SetActive(true);
+    }
+    public void FadeIn()
+    {
+        Fader.DOFade(1f, 0.5f);
+    }
+    public void FadeOut()
+    {
+        Fader.DOFade(0f, 0.5f).OnComplete(()=> Fader.gameObject.SetActive(false));
+    }
+
+    public void ShowInputBox()
+    {
+        InputBoxParent.SetActive(true);
+    }
+
+    public void HideInputBox()
+    {
+        InputBoxParent.SetActive(false);
+    }
+    public IEnumerator AskForPersonName()
+    {
+        InputField.ActivateInputField();
+        while (PersonNameHasBeenSelected == false)
+        {
+            yield return null;
+        }
+    }
+    public void SetName(string name)
+    {
+        PersonNameHasBeenSelected = true;
+    }
+    public IEnumerator DisplayEndscreen()
+    {
+        PersonNameText.text = G.main.PersonsName;
+        Debug.Log($"Persons name: {G.main.PersonsName}");
+        foreach(var text in EndScreen.gameObject.GetComponentsInChildren<TMP_Text>())
+        {
+            text.DOFade(1f, 2f);
+            yield return new WaitForSeconds(2f);
+        }
+        yield break;
     }
 }
 
@@ -559,9 +686,9 @@ public class WindowGroup : MonoBehaviour
 --- Content of ./UI/TextPopup.cs ---
 
 using DG.Tweening;
-using Microsoft.Unity.VisualStudio.Editor;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class TextPopup : MonoBehaviour
 {
@@ -575,16 +702,21 @@ public class TextPopup : MonoBehaviour
     void Update()
     {
     }
-    public void Set(string text, float localX)
+    public void SetAndFlyToTheCenter(string text, float localX)
     {
-        //6f / G.main.PixelsPerUnit
         Text.text = text;
-        var rect = GetComponent<RectTransform>();
+        float ppu = G.main.PixelsPerUnit;
 
-        float xNudge = 2f / G.main.PixelsPerUnit;
-        float xDir = localX > 0 ? -xNudge :xNudge;
-        rect.DOLocalMoveY(2f / G.main.PixelsPerUnit, 1f, true).SetEase(Ease.OutCubic).OnComplete(() => Destroy(gameObject));
-        rect.DOLocalMoveX(xDir, 1f, true).SetEase(Ease.OutCubic);
+        // Random drift distance, biased away from center on X
+        float xNudge = Random.Range(1f, 3f) / ppu;
+        float yNudge = Random.Range(1.5f, 3.5f) / ppu;
+
+        float xDir = localX > 0 ? -xNudge : xNudge;
+        // Small random horizontal scatter so stacked popups spread apart
+        xDir += Random.Range(-0.5f, 0.5f) / ppu;
+
+        transform.DOLocalMoveY(yNudge, 1f, true).SetEase(Ease.OutCubic).OnComplete(() => Destroy(gameObject));
+        transform.DOLocalMoveX(xDir, 1f, true).SetEase(Ease.OutCubic);
     }
 }
 
@@ -653,10 +785,8 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     // Upgrade view will be there too, I will maybe think about a more
     // interesting solution when im done with the gamejam
 
-    public Image OffscreenIcon;   // small icon RectTransform, center-anchored on the Canvas
-    public GameObject OffscreenIconRoot;
-    public float EdgePaddingPixels = 24f;
-
+    public RectTransform OffscreenIconParent;   // small icon RectTransform, center-anchored on the Canvas
+    public Image OffscreenIconImage;
 
     public TMP_Text Header;
 
@@ -704,8 +834,9 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         View.SetActive(false);
         Hover.color = InactiveHoverAlphaColor;
     }
-    public void Init(IStation station, Sprite offscreenIcon)
+    public void Init(IStation station)
     {
+        OffscreenIconImage.sprite = station.GetIcon();
         UpgradeTab.StationWindow = this;
         Station = station;
 
@@ -737,7 +868,6 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
             panel.SetLevelAndCost(0);
             panel.Refresh();
         }
-        OffscreenIcon.sprite = offscreenIcon;
     }
     public void SetHeader(string header)
     {
@@ -796,15 +926,16 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         }
     }
 
-    // Ai code to show and hide icon when station is offscreen
+
+    public float EdgePaddingPixels = 0f;
+
 
     void Update()
     {
-        if (!IsStationUnlocked || OffscreenIcon == null)
+        if (!IsStationUnlocked || OffscreenIconParent == null)
             return;
 
         // Station exposes its world position via its MonoBehaviour
-        // Wtf is this shit, how do you know the station is monobehaviour but whatever
         Vector3 worldPos = ((MonoBehaviour)Station).transform.position;
         Vector3 vp = Camera.main.WorldToViewportPoint(worldPos);
 
@@ -814,21 +945,21 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
 
         if (onScreen)
         {
-            OffscreenIconRoot.gameObject.SetActive(false);
+            OffscreenIconParent.gameObject.SetActive(false);
             return;
         }
 
-        OffscreenIconRoot.gameObject.SetActive(true);
+        OffscreenIconParent.gameObject.SetActive(true);
 
         Vector2 size = G.ui.Root.GetComponent<RectTransform>().sizeDelta;
         float halfH = size.y * 0.5f;
 
         float canvasX = (vp.x - 0.5f) * size.x;
         float canvasY = vp.y > 1f
-            ? halfH - EdgePaddingPixels   // above screen → pin to top
+            ?  halfH - EdgePaddingPixels   // above screen → pin to top
             : -halfH + EdgePaddingPixels;  // below screen → pin to bottom
 
-        OffscreenIcon.GetComponent<RectTransform>().anchoredPosition = new Vector2(canvasX, canvasY);
+        //OffscreenIconParent.anchoredPosition = Hover.GetComponent<RectTransform>().anchoredPosition;
     }
 }
 
@@ -1129,6 +1260,38 @@ public class CameraSlider : MonoBehaviour
         Cam.transform.position = pos;
     }
 }
+
+
+
+--- Content of ./UI/NameInputHandler.cs ---
+
+using UnityEngine;
+using TMPro;
+
+public class NameInputHandler : MonoBehaviour
+{
+    public TMP_InputField InputField;
+    public NameTextureGenerator Generator;
+
+    void Start()
+    {
+        // onEndEdit fires when the user presses Enter or clicks away
+        InputField.onEndEdit.AddListener(OnNameSubmitted);
+    }
+
+    void OnDestroy()
+    {
+        InputField.onEndEdit.RemoveListener(OnNameSubmitted);
+    }
+
+    void OnNameSubmitted(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return;
+        G.main.PersonsName = name;
+    }
+}
+
 
 
 
@@ -1491,6 +1654,7 @@ public class UpgradeData
             UpgradeType.IncBoxesCount => incBoxesCount[level].c,
             UpgradeType.IncCoinsPerMeter => incCoinsPerMeter[level].c,
             UpgradeType.DecDrag => decDrag[level].c,
+            UpgradeType.DecStartupTime => decStartupTime[level].c,
             _ => throw new Exception($"Unhandled UpgradeType: {type}")
         };
     }
@@ -1504,6 +1668,7 @@ public class UpgradeData
             UpgradeType.IncBoxesCount => incBoxesCount.Count,
             UpgradeType.IncCoinsPerMeter => incCoinsPerMeter.Count,
             UpgradeType.DecDrag => decDrag.Count,
+            UpgradeType.DecStartupTime => decStartupTime.Count,
             _ => throw new Exception($"Unhandled UpgradeType: {type}")
         };
     }
@@ -1529,10 +1694,11 @@ public class UpgradeData
 public static class BaseValues
 {
     public static string personName = "Tim Murray";
+    public static float winCondition = 5000;
     public static float coins = 0f;
     public static float lifetime = 0.5f;
     public static float startSpeed = 10f;
-    public static int maxLaunchers = 4;
+    public static int maxLaunchers = 6;
     public static int fireworks = 0;
     public static float acceleration = 0f;
     public static float drag = 0f;
@@ -1541,7 +1707,7 @@ public static class BaseValues
     public static float wobbleFreqY = 0.5f;
     public static float coinsPerMeter = 1;
     public static float startupTime = 4f;
-    public static float reloadTime = 0.5f;
+    public static float reloadTime = 1f;
     public static int boxesCount = 0;
 
 }
@@ -1564,7 +1730,22 @@ public static class CMS
                 incLifetime = new()
                 {
                     (0.5f, 10f),
-                    (0.5f, 40f)
+                    (0.5f, 40f),
+                    (1f, 200f),
+                    (1f, 350f)
+                }
+            },
+            new()
+            {
+                id = "startup_time",
+                name = "Faster startup",
+                type = UpgradeType.DecStartupTime,
+                decStartupTime = new()
+                {
+                    (0.5f, 100f),
+                    (0.5f, 250f),
+                    (0.5f, 450f),
+                    (0.5f, 1200f)
                 }
             },
             new()
@@ -1575,7 +1756,10 @@ public static class CMS
                 incSpeed = new()
                 {
                     (5f, 5f),
-                    (5f, 100f)
+                    (5f, 100f),
+                    (5f, 250f),
+                    (5f, 500f),
+                    (10, 1000f)
                 }
             },
             new()
@@ -1586,9 +1770,11 @@ public static class CMS
                 incFireworkCount = new()
                 {
                     (1, 0f),
-                    (1, 200f),
+                    (1, 100f),
                     (1, 500f),
-                    (1, 900f)
+                    (1, 900f),
+                    (1, 1200f),
+                    (1, 1800f)
                 }
             },
             new()
@@ -1609,7 +1795,8 @@ public static class CMS
                 incCoinsPerMeter = new()
                 {
                     (0.5f, 50f),
-                    (0.5f, 200f)
+                    (0.5f, 200f),
+                    (1f, 500f)
                 }
             }
         };
@@ -1622,6 +1809,7 @@ public static class CMS
                     "fireworks",
                     "lifetime",
                     "speed",
+                    "startup_time"
                 }
                 )
             }
@@ -1754,6 +1942,10 @@ public class FireworkBox : MonoBehaviour, IStation
                 break;
             case UpgradeType.IncFireworkCount:
                 AddLauncherAndStart();
+                break;
+            case UpgradeType.DecStartupTime:
+                LauncherStartupTimeSeconds -= upgradeData.decStartupTime[level].v;
+                LauncherReloadTimeSeconds -= upgradeData.decStartupTime[level].v / 2;
                 break;
             default:
                 Debug.LogError($"Upgrade {upgradeData.id} is not supported for station {GetID()}");
@@ -1926,37 +2118,69 @@ public class Guy : MonoBehaviour, IStation
 
 
 
---- Content of ./Utils/DebugManager.cs ---
+--- Content of ./Rendering/NameTextureGenerator.cs ---
 
+using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using TMPro;
 
-public class DebugManager : MonoBehaviour
+public class NameTextureGenerator : MonoBehaviour
 {
-    public float CoinsIncrement = 100f;
-    void Start()
+    [Header("Offscreen Rendering")]
+    public Camera CaptureCamera;        // the dedicated capture camera
+    public RenderTexture RenderTex;     // the RenderTexture the capture camera draws to
+    public TMP_Text OffscreenText;      // TMP_Text on the offscreen canvas
+
+    [Header("Particles")]
+    public ParticleSystem NameParticles;
+
+    [Header("Texture Settings")]
+    // Threshold below which a pixel is considered transparent (0-1)
+    // Increase if particles appear in the background, decrease if letters look sparse
+    public float AlphaThreshold = 0.5f;
+
+    public Texture2D CapturedTexture;
+
+    public void Capture(string name)
     {
-        #if !UNITY_EDITOR_LINUX
-        gameObject.SetActive(false);
-        #endif
+        OffscreenText.text = name;
+
+        // Force TMP to rebuild its mesh before we capture so the
+        // text is fully rendered into the RenderTexture this frame
+        Canvas.ForceUpdateCanvases();
+        OffscreenText.ForceMeshUpdate();
+
+        StartCoroutine(CaptureAndApply());
     }
 
-    void Update()
+    private IEnumerator CaptureAndApply()
     {
-        if(Input.GetKeyDown(KeyCode.C))
-        {
-            G.main.ReceiveCoins(CoinsIncrement, Vector3.zero);
-        }
-        else if (Input.GetKeyDown(KeyCode.D))
-        {
-            G.main.ReceiveCoins(-CoinsIncrement, Vector3.zero);
-        }
-        else if (Input.GetKeyDown(KeyCode.R))
-        {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        }
+        yield return new WaitForEndOfFrame();
+
+        CapturedTexture = new Texture2D(RenderTex.width, RenderTex.height, TextureFormat.RGBA32, false);
+
+        RenderTexture previouslyActive = RenderTexture.active;
+        RenderTexture.active = RenderTex;
+        CapturedTexture.ReadPixels(new Rect(0, 0, RenderTex.width, RenderTex.height), 0, 0);
+        CapturedTexture.Apply();
+        RenderTexture.active = previouslyActive;
+
+        // Apply texture as a mask onto the shape — no shapeType change needed
+        var shape = NameParticles.shape;
+        shape.enabled = true;
+        shape.texture = CapturedTexture;
+        shape.textureAlphaAffectsParticles = true;
+        shape.textureClipChannel = ParticleSystemShapeTextureChannel.Alpha;
+        shape.textureClipThreshold = AlphaThreshold;
+
+        // No Play() call — particle system is ready for you to use however you want
+    }
+
+    void OnDestroy()
+    {
+        if (CapturedTexture != null)
+            Destroy(CapturedTexture);
     }
 }
-
 
 

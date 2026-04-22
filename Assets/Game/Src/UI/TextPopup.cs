@@ -15,15 +15,20 @@ public class TextPopup : MonoBehaviour
     void Update()
     {
     }
-    public void Set(string text, float localX)
+    public void SetAndFlyToTheCenter(string text, float localX)
     {
-        //6f / G.main.PixelsPerUnit
         Text.text = text;
-        var rect = GetComponent<RectTransform>();
+        float ppu = G.main.PixelsPerUnit;
 
-        float xNudge = 2f / G.main.PixelsPerUnit;
-        float xDir = localX > 0 ? -xNudge :xNudge;
-        rect.DOLocalMoveY(2f / G.main.PixelsPerUnit, 1f, true).SetEase(Ease.OutCubic).OnComplete(() => Destroy(gameObject));
-        rect.DOLocalMoveX(xDir, 1f, true).SetEase(Ease.OutCubic);
+        // Random drift distance, biased away from center on X
+        float xNudge = Random.Range(1f, 3f) / ppu;
+        float yNudge = Random.Range(1.5f, 3.5f) / ppu;
+
+        float xDir = localX > 0 ? -xNudge : xNudge;
+        // Small random horizontal scatter so stacked popups spread apart
+        xDir += Random.Range(-0.5f, 0.5f) / ppu;
+
+        transform.DOLocalMoveY(yNudge, 1f, true).SetEase(Ease.OutCubic).OnComplete(() => Destroy(gameObject));
+        transform.DOLocalMoveX(xDir, 1f, true).SetEase(Ease.OutCubic);
     }
 }

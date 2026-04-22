@@ -1,0 +1,19 @@
+using System;
+using UnityEngine;
+
+namespace Game.Source
+{
+    public class IdleSinMovement : MonoBehaviour
+    {
+        [SerializeField] private GameObject _spriteHolder;
+        
+
+        [SerializeField] private float _waveSpeed;
+        [SerializeField] private float _waveAmplitude;
+        private void Update()
+        {
+            var waveValue = Mathf.Sin(Time.time * _waveSpeed + transform.position.x);
+            _spriteHolder.transform.localPosition = new Vector3(0, waveValue * _waveAmplitude, 0);
+        }
+    }
+}

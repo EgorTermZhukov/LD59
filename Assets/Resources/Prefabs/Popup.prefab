@@ -125,6 +125,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45cd6ebe1cd9f68a6b241bc1ac503cb4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TextPopup
+  Icon: {fileID: 0}
   Text: {fileID: 2424651768068471935}
 --- !u!1 &9150870334903539618
 GameObject:
@@ -160,8 +161,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 11.5, y: 0}
-  m_SizeDelta: {x: 31, y: 19}
+  m_AnchoredPosition: {x: 25.375, y: 0}
+  m_SizeDelta: {x: 58.75, y: 19}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4451827990692624676
 CanvasRenderer:

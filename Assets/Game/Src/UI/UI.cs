@@ -16,6 +16,9 @@ public class UI : MonoBehaviour
     public Image Fader;
     public Canvas Root;
     public CoinsDisplay CoinsDisplay;
+    public TMP_Text DistanceDisplay;
+
+    public CameraSlider CameraSlider;
 
 
     public TextPopup CoinPopup;
@@ -39,6 +42,9 @@ public class UI : MonoBehaviour
     public TMP_Text PersonNameText;
 
 
+    public bool IsShowingPopup;
+
+
     void Awake()
     {
         G.ui = this;
@@ -58,6 +64,13 @@ public class UI : MonoBehaviour
         }
         ProgressBar.SetValue(coins/BaseValues.winCondition, true);
     }
+    public void UpdateMaxDistance(float maxDistance, Vector3 fireworkPosition)
+    {
+        if(G.main.FirstFireworkExploded)
+            AudioController.Instance.PlaySound2D("MaxDistance");
+        DistanceDisplay.text = maxDistance + "m";
+        CameraSlider.UpdateMaxDistanceNotch(fireworkPosition.y);
+    }
 
     void Update()
     {
@@ -72,7 +85,7 @@ public class UI : MonoBehaviour
             _ => value.ToString("0.#")
         };
     }
-    public void SpawnPopup(string text, PopupType type, Vector3 worldPosition)
+    public void SpawnCoinPopup(string text, Vector3 worldPosition)
     {
         var popup = Instantiate(CoinPopup, Root.GetComponent<RectTransform>());
 
@@ -84,7 +97,7 @@ public class UI : MonoBehaviour
             RectTransformUtility.ScreenPointToLocalPointInRectangle(Root.GetComponent<RectTransform>(), screenPoint, null, out localPoint);
 
         popup.GetComponent<RectTransform>().anchoredPosition = localPoint;
-        popup.Set(text, localPoint.x);
+        popup.SetAndFlyToTheCenter(text, localPoint.x);
     }
     public StationWindow CreateStationWindowAndHide(IStation station, Vector3 worldPosition)
     {
