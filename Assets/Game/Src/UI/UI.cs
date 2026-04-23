@@ -101,6 +101,7 @@ public class UI : MonoBehaviour
     }
     public StationWindow CreateStationWindowAndHide(IStation station, Vector3 worldPosition)
     {
+        // world position to canvas
         var window = Instantiate(StationWindowPfb, WindowCanvas.GetComponent<RectTransform>());
         Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(Camera.main, worldPosition);
         Vector2 localPoint;
@@ -108,6 +109,8 @@ public class UI : MonoBehaviour
             RectTransformUtility.ScreenPointToLocalPointInRectangle(Root.GetComponent<RectTransform>(), screenPoint, Camera.main, out localPoint);
         else
             RectTransformUtility.ScreenPointToLocalPointInRectangle(Root.GetComponent<RectTransform>(), screenPoint, null, out localPoint);
+
+
         window.GetComponent<RectTransform>().anchoredPosition = localPoint;
         window.Init(station);
         window.gameObject.SetActive(false);

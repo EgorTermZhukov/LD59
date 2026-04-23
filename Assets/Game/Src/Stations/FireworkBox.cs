@@ -92,6 +92,9 @@ public class FireworkBox : MonoBehaviour, IStation
                 LauncherStartupTimeSeconds -= upgradeData.decStartupTime[level].v;
                 LauncherReloadTimeSeconds -= upgradeData.decStartupTime[level].v / 2;
                 break;
+            case UpgradeType.DecWobbleFreqX:
+                FrequencyX -= upgradeData.decWobbleFreqX[level].v;
+                break;
             default:
                 Debug.LogError($"Upgrade {upgradeData.id} is not supported for station {GetID()}");
                 break;

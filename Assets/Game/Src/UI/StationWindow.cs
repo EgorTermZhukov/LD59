@@ -80,7 +80,7 @@ public class StationWindow : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         var upgradesID = tabData.upgrades;
         var upgradesToAdd = new List<UpgradeData>(); 
 
-        // I feel like i need to move this to cms in postjam version
+        // I feel like i need to move this to cms
         foreach(var id in upgradesID)
         {
             var upgrade = CMS.All.Find(x=>x.id == id);

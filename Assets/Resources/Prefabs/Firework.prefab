@@ -138,7 +138,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac2b3f62b2f39f7f2848619baa4147b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Firework
-  ExplosionParticles: {fileID: 3804538424770698247, guid: 452cbebe9b8ba99229ca99804617822f, type: 3}
+  ExplosionParticles: {fileID: 252056318999590422, guid: 934cf5d38f8ee24e6908789da2989a12, type: 3}
   FuseStartupParticles: {fileID: 0}
   TrailParticles: {fileID: 2153498296612870709, guid: 7e37f4aa4579cc328acb99a309237274, type: 3}
   CreatedTrailParticles: {fileID: 0}

@@ -46,7 +46,7 @@ public class UpgradeData
     public bool UnlockClicking;
     public bool UnlockTrajectory;
 
-    // thanks claude for the solution, very nice type matching
+    
     public float GetCost(int level)
     {
         return type switch
@@ -58,6 +58,7 @@ public class UpgradeData
             UpgradeType.IncCoinsPerMeter => incCoinsPerMeter[level].c,
             UpgradeType.DecDrag => decDrag[level].c,
             UpgradeType.DecStartupTime => decStartupTime[level].c,
+            UpgradeType.DecWobbleFreqX => decWobbleFreqX[level].c,
             _ => throw new Exception($"Unhandled UpgradeType: {type}")
         };
     }
@@ -72,26 +73,10 @@ public class UpgradeData
             UpgradeType.IncCoinsPerMeter => incCoinsPerMeter.Count,
             UpgradeType.DecDrag => decDrag.Count,
             UpgradeType.DecStartupTime => decStartupTime.Count,
+            UpgradeType.DecWobbleFreqX => decWobbleFreqX.Count,
             _ => throw new Exception($"Unhandled UpgradeType: {type}")
         };
     }
-
-    // put this into the station
-    /*
-    public void Apply(int level)
-    {
-        switch (type)
-        {
-            case UpgradeType.IncLifetime: BaseValues.lifetime += incLifetime[level].v; break;
-            case UpgradeType.IncSpeed: BaseValues.startSpeed += incSpeed[level].v; break;
-            case UpgradeType.IncFireworkCount: BaseValues.fireworks += incFireworkCount[level].v; break;
-            case UpgradeType.IncBoxesCount: BaseValues.boxesCount += incBoxesCount[level].v; break;
-            case UpgradeType.IncCoinsPerMeter: BaseValues.coinsPerMeter += incCoinsPerMeter[level].v; break;
-            default: throw new Exception($"Unhandled UpgradeType: {type}");
-        }
-    }
-    */
-
 }
 
 public static class BaseValues
@@ -106,7 +91,7 @@ public static class BaseValues
     public static float acceleration = 0f;
     public static float drag = 0f;
     public static float wobbleDelay = 0f;
-    public static float wobbleFreqX = 5f;
+    public static float wobbleFreqX = 4f;
     public static float wobbleFreqY = 0.5f;
     public static float coinsPerMeter = 1f;
     public static float startupTime = 4f;
@@ -132,10 +117,10 @@ public static class CMS
                 type = UpgradeType.IncLifetime,
                 incLifetime = new()
                 {
-                    (0.1f, 10f),
-                    (0.1f, 40f),
-                    (0.1f, 60f),
-                    (0.1f, 100f)
+                    (0.25f, 10f),
+                    (0.25f, 40f),
+                    (0.25f, 60f),
+                    (0.25f, 100f)
                 }
             },
             new()
@@ -147,10 +132,10 @@ public static class CMS
                 {
                     (0.25f, 20f),
                     (0.25f, 50f),
-                    (0.5f, 250f),
-                    (0.5f, 400f),
-                    (0.5f, 700f),
-                    (0.5f, 1000f)
+                    (0.25f, 250f),
+                    (0.25f, 400f),
+                    (0.25f, 700f),
+                    (0.25f, 1000f)
                 }
             },
             new()
@@ -205,6 +190,20 @@ public static class CMS
                     (0.5f, 500f),
                     (0.5f, 1200f)
                 }
+            },
+            new()
+            {
+                id = "straighter_trajectory",
+                name = "Straighter Trajectory",
+                type = UpgradeType.DecWobbleFreqX,
+                decWobbleFreqX = new()
+                {
+                    (0.5f, 100f),
+                    (0.5f, 250f),
+                    (0.5f, 300f),
+                    (0.5f, 450f)
+                }
+                
             }
         };
         StationsUpgrades = new()
@@ -216,7 +215,8 @@ public static class CMS
                     "fireworks",
                     "lifetime",
                     "speed",
-                    "startup_time"
+                    "startup_time",
+                    "straighter_trajectory"
                 }
                 )
             }
